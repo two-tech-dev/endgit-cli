@@ -7,7 +7,7 @@ EndGit CLI allows developers to publish, search, and install Endstone plugins di
 ## Installation
 
 ```bash
-npm install -g @endgit/cli
+npm install -g @twotech/endgit-cli
 ```
 
 ## Usage
