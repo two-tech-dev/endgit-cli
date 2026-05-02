@@ -1,6 +1,6 @@
 {
   "name": "@twotech/endgit-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "EndGit CLI for the Endstone ecosystem",
   "main": "dist/index.js",
   "files": [

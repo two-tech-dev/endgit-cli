@@ -6,7 +6,6 @@ import { loginCommand } from "./commands/login";
 import { initCommand } from "./commands/init";
 import { searchCommand } from "./commands/search";
 import { installCommand } from "./commands/install";
-import { publishCommand } from "./commands/publish";
 
 const program = new Command();
 
@@ -35,10 +34,7 @@ program
   .description("Download and install a plugin to the current directory")
   .action(installCommand);
 
-program
-  .command("publish")
-  .description("Publish the current plugin to EndGit")
-  .action(publishCommand);
+
 
 // Fallback for unknown commands
 program.on('command:*', function () {
