@@ -35,14 +35,6 @@ endgit install <plugin-name>
 | `endgit search` | Search the plugin marketplace |
 | `endgit install` | Install a plugin to your server |
 
-## Related Repositories
-
-| Repository | Description |
-|------------|-------------|
-| [endgit-core](https://github.com/two-tech-dev/endgit-core) | Backend API server |
-| [endgit-web](https://github.com/two-tech-dev/endgit-web) | Web dashboard |
-| [endgit-worker](https://github.com/two-tech-dev/endgit-worker) | Build worker |
-
 ## License
 
 This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
