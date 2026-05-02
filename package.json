@@ -1,8 +1,11 @@
 {
-  "name": "@endgit/cli",
+  "name": "@twotech/endgit-cli",
   "version": "0.1.0",
-  "description": "EndGit CLI — Command-line tool for the Endstone plugin ecosystem",
+  "description": "EndGit CLI for the Endstone ecosystem",
   "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "bin": {
     "endgit": "./dist/index.js"
   },
@@ -25,10 +28,5 @@
     "@types/node": "^20.12.12",
     "@types/prompts": "^2.4.9",
     "typescript": "^5.4.5"
-  },
-  "license": "AGPL-3.0-only",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/two-tech-dev/endgit-cli.git"
   }
 }

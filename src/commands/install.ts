@@ -45,8 +45,15 @@ export async function installCommand(input: string) {
       console.log(pc.yellow(`\n⚠️  WARNING: This is a DEV BUILD (not reviewed). Use at your own risk.`));
       spinner.text = `Downloading dev build #${targetBuild.buildNumber}...`;
 
-      if (!targetBuild.artifactUrl) {
-        spinner.fail(`Build #${targetBuild.buildNumber} does not have a valid artifact URL.`);
+      let downloadUrl = targetBuild.artifactUrl;
+      if (process.platform === "win32" && targetBuild.artifactUrlWin) {
+        downloadUrl = targetBuild.artifactUrlWin;
+      } else if ((process.platform === "linux" || process.platform === "darwin") && targetBuild.artifactUrlLinux) {
+        downloadUrl = targetBuild.artifactUrlLinux;
+      }
+
+      if (!downloadUrl) {
+        spinner.fail(`Build #${targetBuild.buildNumber} does not have a valid artifact for your operating system.`);
         return;
       }
 
@@ -55,7 +62,7 @@ export async function installCommand(input: string) {
       if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir);
 
       try {
-        const downloadRes = await api.get(targetBuild.artifactUrl, {
+        const downloadRes = await api.get(downloadUrl, {
           responseType: "arraybuffer"
         });
 
@@ -91,7 +98,8 @@ export async function installCommand(input: string) {
       if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir);
 
       try {
-        const downloadRes = await api.get(`/api/v1/download/${pluginName}/${plugin.latestVersion}`, {
+        const platform = process.platform === "win32" ? "windows" : "linux";
+        const downloadRes = await api.get(`/api/v1/download/${pluginName}/${plugin.latestVersion}?platform=${platform}`, {
           responseType: "arraybuffer"
         });
 
@@ -100,7 +108,9 @@ export async function installCommand(input: string) {
         if (contentDisposition && contentDisposition.includes('filename=')) {
           fileName = contentDisposition.split('filename=')[1].replace(/"/g, '');
         } else {
-          fileName += plugin.pluginType === "PYTHON" ? ".whl" : ".so";
+          if (plugin.pluginType === "PYTHON") fileName += ".whl";
+          else if (platform === "windows") fileName += ".dll";
+          else fileName += ".so";
         }
 
         const filePath = path.join(pluginsDir, fileName);

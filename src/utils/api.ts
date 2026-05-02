@@ -3,7 +3,7 @@ import { getConfig } from "./config";
 
 export function getApiClient() {
   const config = getConfig();
-  const baseURL = config.apiUrl || "http://localhost:4000";
+  const baseURL = config.apiUrl || "https://api.endgit.dev";
   
   const client = axios.create({
     baseURL,

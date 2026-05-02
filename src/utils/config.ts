@@ -12,13 +12,13 @@ export interface EndGitConfig {
 
 export function getConfig(): EndGitConfig {
   if (!fs.existsSync(CONFIG_FILE)) {
-    return { apiUrl: "http://localhost:4000" }; // Default API URL
+    return { apiUrl: "https://api.endgit.dev" }; // Default API URL
   }
   try {
     const data = fs.readFileSync(CONFIG_FILE, "utf-8");
     return JSON.parse(data);
   } catch {
-    return { apiUrl: "http://localhost:4000" };
+    return { apiUrl: "https://api.endgit.dev" };
   }
 }
 
