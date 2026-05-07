@@ -49,7 +49,7 @@ jobs:
             endgit-windows-amd64.exe
             endgit-linux-amd64
           body: |
-            ## endgit ${{ steps.version.outputs.VERSION }}
+            ## EndGit ${{ steps.version.outputs.VERSION }}
             
             ### Installation
             
