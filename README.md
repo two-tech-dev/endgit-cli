@@ -1,8 +1,8 @@
 # EndGit CLI
-
-**Command-line tool for the Endstone plugin ecosystem**
-
+**Command-line tool for the Endstone plugin ecosystem**   
 EndGit CLI allows developers to publish, search, and install Endstone plugins directly from the terminal.
+
+[![Release](https://github.com/two-tech-dev/endgit-cli/actions/workflows/release.yml/badge.svg)](https://github.com/two-tech-dev/endgit-cli/actions/workflows/release.yml)   
 
 ## Installation
 
