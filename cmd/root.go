@@ -14,8 +14,11 @@ import (
 
 var endgit = color.New(color.FgCyan, color.Bold).Sprint("EndGit")
 
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
-	Use:   "endgit",
+	Use:     "endgit",
+	Version: Version,
 	Short: endgit + " - The package manager for Endstone plugins",
 	Long: endgit + ` - The package manager for Endstone plugins
 

@@ -22,9 +22,9 @@ var logoutCmd = &cobra.Command{
 		s.Suffix = " Removing stored credentials..."
 		s.Start()
 
-		err := config.SaveConfig(config.EndGitConfig{
-			APIToken: "",
-		})
+		cfg := config.GetConfig()
+		cfg.APIToken = ""
+		err := config.SaveConfig(cfg)
 
 		s.Stop()
 

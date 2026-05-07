@@ -1,5 +1,7 @@
 package api
 
+import "runtime"
+
 type Response struct {
 	Success    bool       `json:"success"`
 	Data       Data       `json:"data"`
@@ -61,4 +63,19 @@ type Build struct {
 	ArtifactURL      string `json:"artifactUrl"`
 	ArtifactURLWin   string `json:"artifactUrlWin"`
 	ArtifactURLLinux string `json:"artifactUrlLinux"`
+}
+
+func (b *Build) ResolveArtifactURL() string {
+	switch runtime.GOOS {
+	case "windows":
+		if b.ArtifactURLWin != "" {
+			return b.ArtifactURLWin
+		}
+	case "linux":
+		if b.ArtifactURLLinux != "" {
+			return b.ArtifactURLLinux
+		}
+	}
+
+	return b.ArtifactURL
 }

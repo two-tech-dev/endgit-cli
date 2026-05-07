@@ -89,14 +89,20 @@ var initCmd = &cobra.Command{
 		pluginPath := filepath.Join(dir, "plugin.json")
 		endgitPath := filepath.Join(dir, "endgit.json")
 
-		writeJSON(pluginPath, plugin)
+		if err := writeJSON(pluginPath, plugin); err != nil {
+			color.Red("Failed to write plugin.json: %v", err)
+			os.Exit(1)
+		}
 
 		endgit := EndgitJSON{
 			DisplayName: displayName,
 			PluginType:  pluginType,
 		}
 
-		writeJSON(endgitPath, endgit)
+		if err := writeJSON(endgitPath, endgit); err != nil {
+			color.Red("Failed to write endgit.json: %v", err)
+			os.Exit(1)
+		}
 
 		color.Green("\nSuccessfully created plugin.json and endgit.json.")
 		color.HiBlack("You can now run endgit publish to push your plugin.")
@@ -107,9 +113,12 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
-func writeJSON(path string, v any) {
-	data, _ := json.MarshalIndent(v, "", "  ")
-	_ = os.WriteFile(path, data, 0644)
+func writeJSON(path string, v any) error {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
 }
 
 func sanitizeSlug(s string) string {

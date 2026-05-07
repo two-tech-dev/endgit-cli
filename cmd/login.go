@@ -46,9 +46,9 @@ var loginCmd = &cobra.Command{
 		s.Suffix = " Saving credentials..."
 		s.Start()
 
-		err = config.SaveConfig(config.EndGitConfig{
-			APIToken: token,
-		})
+		cfg := config.GetConfig()
+		cfg.APIToken = token
+		err = config.SaveConfig(cfg)
 
 		s.Stop()
 

@@ -59,7 +59,7 @@ func GetConfig() EndGitConfig {
 	return cfg
 }
 
-func SaveConfig(update EndGitConfig) error {
+func SaveConfig(config EndGitConfig) error {
 	dir, err := configDir()
 	if err != nil {
 		return err
@@ -75,22 +75,12 @@ func SaveConfig(update EndGitConfig) error {
 		return err
 	}
 
-	current := GetConfig()
-
-	// merge (like {...current, ...config})
-	if update.APIToken != "" {
-		current.APIToken = update.APIToken
-	}
-	if update.APIURL != "" {
-		current.APIURL = update.APIURL
-	}
-
-	data, err := json.MarshalIndent(current, "", "  ")
+	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(file, data, 0644)
+	return os.WriteFile(file, data, 0600)
 }
 
 func defaultConfig() EndGitConfig {

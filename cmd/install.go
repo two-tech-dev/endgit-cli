@@ -19,6 +19,35 @@ import (
 	"github.com/two-tech-dev/endgit-cli/internal/common"
 )
 
+func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filename string) {
+	if err := os.MkdirAll("plugins", 0755); err != nil {
+		s.Stop()
+		color.Red("Failed to create plugins directory: %v", err)
+		os.Exit(1)
+	}
+
+	file := filepath.Join("plugins", filename)
+	baseSuffix := s.Suffix
+
+	onProgress := func(downloaded, total int64) {
+		if total > 0 {
+			percent := float64(downloaded) / float64(total) * 100
+			s.Suffix = fmt.Sprintf("%s (%.1f%% of %.2fMB)", baseSuffix, percent, float64(total)/(1024*1024))
+		} else {
+			s.Suffix = fmt.Sprintf("%s (%.2fMB)", baseSuffix, float64(downloaded)/(1024*1024))
+		}
+	}
+
+	if err := client.DownloadFile(url, file, onProgress); err != nil {
+		s.Stop()
+		color.Red("Download failed: %v", err)
+		os.Exit(1)
+	}
+
+	s.Stop()
+	color.HiBlack("Saved to: %s", file)
+}
+
 var installCmd = &cobra.Command{
 	Use:   "install <plugin[@version|@commit]>",
 	Short: "Download and install a plugin to the current directory",
@@ -49,6 +78,8 @@ var installCmd = &cobra.Command{
 		ext := ".so"
 		if runtime.GOOS == "windows" {
 			ext = ".dll"
+		} else if runtime.GOOS == "darwin" {
+			ext = ".dylib"
 		}
 
 		// =========================
@@ -83,28 +114,11 @@ var installCmd = &cobra.Command{
 
 			s.Suffix = fmt.Sprintf(" Downloading build #%d...", target.BuildNumber)
 
-			url := common.ResolveArtifactURL(target)
-
-			data, err := common.DownloadFile(url)
-			if err != nil {
-				s.Stop()
-				color.Red("Download failed: %v", err)
-				return
-			}
-
-			_ = os.MkdirAll("plugins", 0755)
-
-			file := filepath.Join(
-				"plugins",
-				fmt.Sprintf("%s-build%d-%s%s", plugin, target.BuildNumber, commit[:7], ext),
-			)
-
-			_ = os.WriteFile(file, data, 0644)
-
-			s.Stop()
-
+			url := target.ResolveArtifactURL()
+			filename := fmt.Sprintf("%s-build%d-%s%s", plugin, target.BuildNumber, commit[:7], ext)
+			
+			downloadAndSave(s, client, url, filename)
 			color.Green("Installed dev build %s #%d", plugin, target.BuildNumber)
-			color.HiBlack("Saved to: %s", file)
 			return
 		}
 
@@ -124,26 +138,9 @@ var installCmd = &cobra.Command{
 				runtime.GOOS,
 			)
 
-			data, err := common.DownloadFile(downloadURL)
-			if err != nil {
-				s.Stop()
-				color.Red("Download failed: %v", err)
-				return
-			}
-
-			_ = os.MkdirAll("plugins", 0755)
-
-			file := filepath.Join(
-				"plugins",
-				fmt.Sprintf("%s-%s%s", plugin, version, ext),
-			)
-
-			_ = os.WriteFile(file, data, 0644)
-
-			s.Stop()
-
+			filename := fmt.Sprintf("%s-%s%s", plugin, version, ext)
+			downloadAndSave(s, client, downloadURL, filename)
 			color.Green("Installed %s@%s", plugin, version)
-			color.HiBlack("Saved to: %s", file)
 			return
 		}
 
@@ -166,6 +163,8 @@ var installCmd = &cobra.Command{
 			return
 		}
 
+		s.Suffix = fmt.Sprintf(" Downloading %s@%s...", plugin, p.LatestVersion)
+
 		downloadURL := fmt.Sprintf(
 			"%s/download/%s/%s?platform=%s",
 			client.BaseURL,
@@ -174,26 +173,9 @@ var installCmd = &cobra.Command{
 			runtime.GOOS,
 		)
 
-		data, err := common.DownloadFile(downloadURL)
-		if err != nil {
-			s.Stop()
-			color.Red("Download failed: %v", err)
-			return
-		}
-
-		_ = os.MkdirAll("plugins", 0755)
-
-		file := filepath.Join(
-			"plugins",
-			fmt.Sprintf("%s-%s%s", plugin, p.LatestVersion, ext),
-		)
-
-		_ = os.WriteFile(file, data, 0644)
-
-		s.Stop()
-
+		filename := fmt.Sprintf("%s-%s%s", plugin, p.LatestVersion, ext)
+		downloadAndSave(s, client, downloadURL, filename)
 		color.Green("Installed %s@%s", plugin, p.LatestVersion)
-		color.HiBlack("Saved to: %s", file)
 	},
 }
 
