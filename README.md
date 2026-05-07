@@ -38,7 +38,7 @@ endgit install <plugin-name>
 | Command | Description |
 |---------|-------------|
 | `endgit login` | Authenticate with EndGit |
-| `endgit login` | Logout of EndGit |
+| `endgit logout` | Logout of EndGit |
 | `endgit publish` | Package and publish your plugin |
 | `endgit search` | Search the plugin marketplace |
 | `endgit install` | Install a plugin to your server |
