@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Build Windows binary
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w" -o endgit-windows-amd64.exe .
+      
+      - name: Build Linux binary
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w" -o endgit-linux-amd64 .
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            endgit-windows-amd64.exe
+            endgit-linux-amd64
+          body: |
+            ## endgit ${{ steps.version.outputs.VERSION }}
+            
+            ### Installation
+            
+            **Windows:**
+            ```powershell
+            irm https://raw.githubusercontent.com/two-tech-dev/endgit-cli/main/installer.ps1 | iex
+            ```
+            
+            **Linux:**
+            ```bash
+            curl -sSL https://raw.githubusercontent.com/two-tech-dev/endgit-cli/main/installer.sh | bash
+            ```
+            
+            ### Usage
+            ```
+            endgit login
+            endgit search <plugin>
+            ```
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
