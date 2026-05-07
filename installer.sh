@@ -3,7 +3,7 @@
 
 set -e
 
-REPO="two-tech-dev/endgit"
+REPO="two-tech-dev/endgit-cli"
 API_URL="https://api.github.com/repos/$REPO/releases/latest"
 
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
@@ -15,7 +15,7 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${CYAN}Endgit Installer${NC}"
+echo -e "${CYAN}EndGit Installer${NC}"
 echo -e "${CYAN}=================${NC}"
 echo ""
 
