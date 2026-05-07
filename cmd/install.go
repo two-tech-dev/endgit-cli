@@ -19,6 +19,22 @@ import (
 	"github.com/two-tech-dev/endgit-cli/internal/common"
 )
 
+func resolveExt(pluginType string) string {
+	switch strings.ToLower(pluginType) {
+	case "python":
+		return ".whl"
+	default:
+		switch runtime.GOOS {
+		case "windows":
+			return ".dll"
+		case "darwin":
+			return ".dylib"
+		default:
+			return ".so"
+		}
+	}
+}
+
 func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filename string) {
 	if err := os.MkdirAll("plugins", 0755); err != nil {
 		s.Stop()
@@ -74,17 +90,14 @@ var installCmd = &cobra.Command{
 		client := api.NewClient()
 
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-
-		ext := ".so"
-		if runtime.GOOS == "windows" {
-			ext = ".dll"
-		} else if runtime.GOOS == "darwin" {
-			ext = ".dylib"
+		p, err := client.GetPlugin(plugin)
+		if err != nil {
+			color.Red("Failed to fetch plugin: %v", err)
+			return
 		}
+		ext := resolveExt(p.PluginType)
 
-		// =========================
 		// DEV BUILD (COMMIT)
-		// =========================
 		if commit != "" {
 
 			s.Suffix = fmt.Sprintf(" Searching build %.7s...", commit)
@@ -116,15 +129,13 @@ var installCmd = &cobra.Command{
 
 			url := target.ResolveArtifactURL()
 			filename := fmt.Sprintf("%s-build%d-%s%s", plugin, target.BuildNumber, commit[:7], ext)
-			
+
 			downloadAndSave(s, client, url, filename)
 			color.Green("Installed dev build %s #%d", plugin, target.BuildNumber)
 			return
 		}
 
-		// =========================
 		// VERSION INSTALL
-		// =========================
 		if version != "" {
 
 			s.Suffix = fmt.Sprintf(" Downloading %s@%s...", plugin, version)
@@ -144,13 +155,10 @@ var installCmd = &cobra.Command{
 			return
 		}
 
-		// =========================
 		// LATEST STABLE
-		// =========================
 		s.Suffix = fmt.Sprintf(" Fetching %s...", plugin)
 		s.Start()
 
-		p, err := client.GetPlugin(plugin)
 		if err != nil {
 			s.Stop()
 			color.Red("Failed to fetch plugin: %v", err)
