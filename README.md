@@ -33,6 +33,28 @@ endgit search <query>
 endgit install <plugin-name>
 ```
 
+## Building
+
+### Requirements
+
+- Install Go 1.22 or newer
+- Make sure your `GOPATH/bin` is added to your system `PATH`
+
+### Build from Source
+
+```bash
+git clone https://github.com/two-tech-dev/endgit-cli.git
+cd endgit-cli
+
+go build -o endgit
+```
+
+### Run Locally
+
+```bash
+go run .
+```
+
 ## Commands
 
 | Command | Description |
