@@ -14,7 +14,7 @@ import (
 
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "Remove stored authentication credentials",
+	Short: "Logout of EndGit",
 	Run: func(cmd *cobra.Command, args []string) {
 		color.New(color.FgHiCyan, color.Bold).Println("Logging out of EndGit")
 

@@ -6,9 +6,16 @@ EndGit CLI allows developers to publish, search, and install Endstone plugins di
 
 ## Installation
 
-```bash
-npm install -g @twotech/endgit-cli
+**Windows:**
+```powershell
+irm https://endgit.dev/installer.ps1 | iex
 ```
+
+**Linux:**
+```bash
+curl -sSL https://endgit.dev/installer.sh | bash
+```
+
 
 ## Usage
 
@@ -31,6 +38,7 @@ endgit install <plugin-name>
 | Command | Description |
 |---------|-------------|
 | `endgit login` | Authenticate with EndGit |
+| `endgit login` | Logout of EndGit |
 | `endgit publish` | Package and publish your plugin |
 | `endgit search` | Search the plugin marketplace |
 | `endgit install` | Install a plugin to your server |

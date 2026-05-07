@@ -53,12 +53,12 @@ jobs:
             
             **Windows:**
             ```powershell
-            irm https://raw.githubusercontent.com/two-tech-dev/endgit-cli/main/installer.ps1 | iex
+            irm https://endgit.dev/installer.ps1 | iex
             ```
             
             **Linux:**
             ```bash
-            curl -sSL https://raw.githubusercontent.com/two-tech-dev/endgit-cli/main/installer.sh | bash
+            curl -sSL https://endgit.dev/installer.sh | bash
             ```
             
             ### Usage
