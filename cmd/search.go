@@ -24,8 +24,8 @@ var searchCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[14], 120*time.Millisecond)
 		s.Suffix = fmt.Sprintf(" Searching for \"%s\"...", query)
 		s.Start()
-
 		client := api.NewClient()
+
 		response, err := client.GetPlugins(query)
 
 		s.Stop()
@@ -49,7 +49,7 @@ var searchCmd = &cobra.Command{
 			// type badge
 			typeStr := ""
 			if strings.ToUpper(p.PluginType) == "PYTHON" {
-				typeStr = color.HiGreenString("[Py]")
+				typeStr = color.HiGreenString("[PY]")
 			} else {
 				typeStr = color.HiBlueString("[C++]")
 			}
@@ -72,7 +72,7 @@ var searchCmd = &cobra.Command{
 
 		color.HiBlack(strings.Repeat("-", 80))
 		color.White("\nRun %s to install.\n",
-			color.HiWhiteString("endgit install <plugin-name>"),
+			color.HiWhiteString("endgit install <plugin>"),
 		)
 	},
 }

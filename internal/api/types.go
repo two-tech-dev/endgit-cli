@@ -46,3 +46,19 @@ type Pagination struct {
 	Total      int `json:"total"`
 	TotalPages int `json:"totalPages"`
 }
+
+type BuildResponse struct {
+	Success bool `json:"success"`
+	Data    struct {
+		Builds []Build `json:"builds"`
+	} `json:"data"`
+}
+
+type Build struct {
+	BuildNumber      int    `json:"buildNumber"`
+	CommitHash       string `json:"commitHash"`
+	Status           string `json:"status"`
+	ArtifactURL      string `json:"artifactUrl"`
+	ArtifactURLWin   string `json:"artifactUrlWin"`
+	ArtifactURLLinux string `json:"artifactUrlLinux"`
+}

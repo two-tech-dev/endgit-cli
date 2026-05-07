@@ -14,7 +14,6 @@ import (
 
 var endgit = color.New(color.FgCyan, color.Bold).Sprint("EndGit")
 
-// Root command
 var rootCmd = &cobra.Command{
 	Use:   "endgit",
 	Short: endgit + " - The package manager for Endstone plugins",
@@ -35,7 +34,6 @@ func printInvalidCommand(args []string) {
 	)
 }
 
-// Execute runs the root command and handles global errors
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		printInvalidCommand(os.Args[1:])
@@ -47,7 +45,6 @@ func init() {
 	// Disable built-in completion command
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
-	// Optional: clean error/usage handling from Cobra
 	rootCmd.SilenceErrors = true
 	rootCmd.SilenceUsage = true
 }
