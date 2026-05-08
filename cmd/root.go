@@ -14,7 +14,7 @@ import (
 
 var endgit = color.New(color.FgCyan, color.Bold).Sprint("EndGit")
 
-var Version = "v0.1.2"
+var Version = "v0.1.3"
 
 var rootCmd = &cobra.Command{
 	Use:     "endgit",
