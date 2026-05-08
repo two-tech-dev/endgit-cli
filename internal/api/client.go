@@ -167,3 +167,54 @@ func (c *Client) DownloadFile(url string, destPath string, onProgress func(downl
 	_, err = io.CopyBuffer(pw, resp.Body, buf)
 	return err
 }
+
+// GitHub API response for latest release (binary name endgit-OS-ARCH)
+func (c *Client) GetLatestRelease(repo string) (string, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+	resp, err := c.HTTP.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("github api error: %s", resp.Status)
+	}
+
+	var data struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return "", err
+	}
+	return data.TagName, nil
+}
+
+func (c *Client) GetLatestReleaseAssetURL(repo string, assetName string) (string, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+	resp, err := c.HTTP.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("github api error: %s", resp.Status)
+	}
+
+	var data struct {
+		Assets []struct {
+			Name string `json:"name"`
+			URL  string `json:"browser_download_url"`
+		} `json:"assets"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return "", err
+	}
+	for _, asset := range data.Assets {
+		if asset.Name == assetName {
+			return asset.URL, nil
+		}
+	}
+	return "", fmt.Errorf("asset %s not found in latest release", assetName)
+}
