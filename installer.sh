@@ -1,94 +1,136 @@
 #!/bin/bash
-# Endgit Installer for Linux
+# EndGit Installer for Linux/macOS
 
 set -e
 
+INSTALL_DIR="${1:-$HOME/.local/bin}"
+EXE_PATH="$INSTALL_DIR/endgit"
 REPO="two-tech-dev/endgit-cli"
 API_URL="https://api.github.com/repos/$REPO/releases/latest"
 
-INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
-BINARY_NAME="endgit"
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
+# Colors
 CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+WHITE='\033[0;37m'
 NC='\033[0m'
 
 echo -e "${CYAN}EndGit Installer${NC}"
-echo -e "${CYAN}=================${NC}"
+echo -e "${CYAN}================${NC}"
 echo ""
-
-if [ "$EUID" -eq 0 ]; then
-    INSTALL_DIR="/usr/local/bin"
-    echo -e "${YELLOW}Running as root - installing system-wide to $INSTALL_DIR${NC}"
-else
-    echo -e "${YELLOW}Installing to user directory: $INSTALL_DIR${NC}"
-fi
 
 echo -e "${YELLOW}Fetching latest release information...${NC}"
 
-if command -v curl &> /dev/null; then
-    RESPONSE=$(curl -sSL "$API_URL" -H "User-Agent: endgit-installer")
-elif command -v wget &> /dev/null; then
-    RESPONSE=$(wget -qO- "$API_URL" --header="User-Agent: endgit-installer")
-else
-    echo -e "${RED}Error: curl or wget required${NC}"
+RESPONSE=$(curl -sf -H "User-Agent: endgit-installer" "$API_URL") || {
+    echo -e "${RED}Error: Failed to fetch release information.${NC}"
     exit 1
-fi
+}
 
-VERSION=$(echo "$RESPONSE" | grep -o '"tag_name": *"[^"]*"' | head -1 | sed 's/"tag_name": *"\(.*\)"/\1/')
+VERSION=$(echo "$RESPONSE" | grep -o '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4)
 
 if [ -z "$VERSION" ]; then
-    echo -e "${RED}Failed to fetch version${NC}"
+    echo -e "${RED}Error: Failed to parse release information.${NC}"
     exit 1
 fi
 
 echo -e "${GREEN}Latest version: $VERSION${NC}"
 
-# detect platform
-OS="linux"
-ARCH="amd64"
+# Detect OS and arch
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64)        ARCH="amd64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    *)             ARCH="amd64" ;;
+esac
 
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    OS="darwin"
-fi
+# Find matching asset
+find_asset() {
+    local pattern="$1"
+    echo "$RESPONSE" \
+        | grep -o '"browser_download_url": *"[^"]*"' \
+        | grep -i "$pattern" \
+        | head -1 \
+        | grep -o 'https://[^"]*'
+}
 
-ASSET_NAME="endgit-${OS}-${ARCH}"
-
-DOWNLOAD_URL=$(echo "$RESPONSE" | grep -o "\"browser_download_url\": *\"[^\"]*${ASSET_NAME}\"" | head -1 | sed 's/"browser_download_url": *"\(.*\)"/\1/')
+DOWNLOAD_URL=$(find_asset "endgit-${OS}-${ARCH}")
+[ -z "$DOWNLOAD_URL" ] && DOWNLOAD_URL=$(find_asset "${OS}")
+[ -z "$DOWNLOAD_URL" ] && DOWNLOAD_URL=$(find_asset "linux")
 
 if [ -z "$DOWNLOAD_URL" ]; then
-    echo -e "${RED}No matching binary found${NC}"
-    echo "$RESPONSE" | grep -o '"name": *"[^"]*"' | sed 's/"name": *"\(.*\)"/  - \1/'
+    echo -e "${RED}Error: No asset found for your platform (${OS}/${ARCH}).${NC}"
+    echo -e "${YELLOW}Available assets:${NC}"
+    echo "$RESPONSE" | grep -o '"name": *"[^"]*"' | cut -d'"' -f4 | while read -r name; do
+        echo "  - $name"
+    done
     exit 1
 fi
 
 FILE_NAME=$(basename "$DOWNLOAD_URL")
-
-echo -e "${GREEN}Found: $FILE_NAME${NC}"
+echo -e "${GREEN}Found asset: $FILE_NAME${NC}"
 echo ""
 
 mkdir -p "$INSTALL_DIR"
 
-INSTALL_PATH="$INSTALL_DIR/$BINARY_NAME"
+echo -e "${YELLOW}Downloading $FILE_NAME...${NC}"
+curl -fL --progress-bar -o "$EXE_PATH" "$DOWNLOAD_URL" || {
+    echo -e "${RED}Error: Download failed.${NC}"
+    exit 1
+}
 
-echo -e "${YELLOW}Downloading...${NC}"
-
-if command -v curl &> /dev/null; then
-    curl -L "$DOWNLOAD_URL" -o "$INSTALL_PATH"
-elif command -v wget &> /dev/null; then
-    wget -O "$INSTALL_PATH" "$DOWNLOAD_URL"
+if [ ! -f "$EXE_PATH" ]; then
+    echo -e "${RED}Error: Download failed — file not found.${NC}"
+    exit 1
 fi
 
-chmod +x "$INSTALL_PATH"
+FILE_SIZE=$(wc -c < "$EXE_PATH")
+if [ "$FILE_SIZE" -eq 0 ]; then
+    echo -e "${RED}Error: Downloaded file is empty.${NC}"
+    rm -f "$EXE_PATH"
+    exit 1
+fi
 
-echo -e "${GREEN}Installed to: $INSTALL_PATH${NC}"
+chmod +x "$EXE_PATH"
 
-if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-    echo -e "${YELLOW}Add to PATH:${NC}"
-    echo "export PATH=\"\$PATH:$INSTALL_DIR\""
+FILE_SIZE_KB=$(awk "BEGIN {printf \"%.2f\", $FILE_SIZE/1024}")
+echo -e "${GREEN}Installed to: $EXE_PATH (${FILE_SIZE_KB} KB)${NC}"
+echo ""
+
+# Add to PATH in shell profile
+add_to_path() {
+    local profile="$1"
+    if [ -f "$profile" ] && ! grep -q "$INSTALL_DIR" "$profile"; then
+        echo "" >> "$profile"
+        echo "# EndGit" >> "$profile"
+        echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$profile"
+        echo -e "${GREEN}Added $INSTALL_DIR to PATH in $profile${NC}"
+        return 0
+    fi
+    return 1
+}
+
+echo -e "${YELLOW}Adding to PATH...${NC}"
+
+if echo "$PATH" | grep -q "$INSTALL_DIR"; then
+    echo -e "${GREEN}Already in PATH${NC}"
+else
+    ADDED=false
+    for profile in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
+        add_to_path "$profile" && ADDED=true && break
+    done
+    if [ "$ADDED" = false ]; then
+        echo -e "${YELLOW}Could not auto-update shell profile. Add this manually:${NC}"
+        echo "  export PATH=\"\$PATH:$INSTALL_DIR\""
+    fi
+    echo -e "${YELLOW}Restart terminal or run: source ~/.bashrc (or ~/.zshrc)${NC}"
 fi
 
 echo ""
-echo -e "${GREEN}Endgit installation complete${NC}"
+echo -e "${GREEN}Installation complete!${NC}"
+echo ""
+echo -e "${CYAN}Usage:${NC}"
+echo -e "${WHITE}  endgit search <plugin>${NC}"
+echo -e "${WHITE}  endgit install <plugin>${NC}"
+echo -e "${WHITE}  endgit init${NC}"
