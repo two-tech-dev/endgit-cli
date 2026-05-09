@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/two-tech-dev/endgit-cli/internal/api"
 	"github.com/two-tech-dev/endgit-cli/internal/common"
+	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
 
 func resolveExt(pluginType string) string {
@@ -35,11 +35,10 @@ func resolveExt(pluginType string) string {
 	}
 }
 
-func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filename string) {
-	if err := os.MkdirAll("plugins", 0755); err != nil {
+func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filename string) error {
+	if err := os.MkdirAll("plugins", 0o755); err != nil {
 		s.Stop()
-		color.Red("Failed to create plugins directory: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create plugins directory: %w", err)
 	}
 
 	file := filepath.Join("plugins", filename)
@@ -56,12 +55,12 @@ func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filenam
 
 	if err := client.DownloadFile(url, file, onProgress); err != nil {
 		s.Stop()
-		color.Red("Download failed: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("download failed: %w", err)
 	}
 
 	s.Stop()
-	color.HiBlack("Saved to: %s", file)
+	log.Infof("Saved to: %s", file)
+	return nil
 }
 
 var installCmd = &cobra.Command{
@@ -69,7 +68,6 @@ var installCmd = &cobra.Command{
 	Short: "Download and install a plugin to the current directory",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-
 		input := args[0]
 
 		var plugin, version, commit string
@@ -92,22 +90,20 @@ var installCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 		p, err := client.GetPlugin(plugin)
 		if err != nil {
-			color.Red("Failed to fetch plugin: %v", err)
-			return
+			s.Stop()
+			log.Fatal("Failed to fetch plugin", err)
 		}
 		ext := resolveExt(p.PluginType)
 
 		// DEV BUILD (COMMIT)
 		if commit != "" {
-
 			s.Suffix = fmt.Sprintf(" Searching build %.7s...", commit)
 			s.Start()
 
 			buildsResp, err := client.GetBuilds(plugin)
 			if err != nil {
 				s.Stop()
-				color.Red("Failed to fetch builds: %v", err)
-				return
+				log.Fatal("Failed to fetch builds", err)
 			}
 
 			var target *api.Build
@@ -121,7 +117,7 @@ var installCmd = &cobra.Command{
 
 			if target == nil {
 				s.Stop()
-				color.Yellow("No successful build found for commit %.7s", commit)
+				log.Warnf("No successful build found for commit %.7s", commit)
 				return
 			}
 
@@ -130,14 +126,15 @@ var installCmd = &cobra.Command{
 			url := target.ResolveArtifactURL()
 			filename := fmt.Sprintf("%s-build%d-%s%s", plugin, target.BuildNumber, commit[:7], ext)
 
-			downloadAndSave(s, client, url, filename)
-			color.Green("Installed dev build %s #%d", plugin, target.BuildNumber)
+			if err := downloadAndSave(s, client, url, filename); err != nil {
+				log.Fatal("Failed to download", err)
+			}
+			log.Successf("Installed dev build %s #%d", plugin, target.BuildNumber)
 			return
 		}
 
 		// VERSION INSTALL
 		if version != "" {
-
 			s.Suffix = fmt.Sprintf(" Downloading %s@%s...", plugin, version)
 			s.Start()
 
@@ -150,8 +147,10 @@ var installCmd = &cobra.Command{
 			)
 
 			filename := fmt.Sprintf("%s-%s%s", plugin, version, ext)
-			downloadAndSave(s, client, downloadURL, filename)
-			color.Green("Installed %s@%s", plugin, version)
+			if err := downloadAndSave(s, client, downloadURL, filename); err != nil {
+				log.Fatal("Failed to download", err)
+			}
+			log.Successf("Installed %s@%s", plugin, version)
 			return
 		}
 
@@ -159,16 +158,9 @@ var installCmd = &cobra.Command{
 		s.Suffix = fmt.Sprintf(" Fetching %s...", plugin)
 		s.Start()
 
-		if err != nil {
-			s.Stop()
-			color.Red("Failed to fetch plugin: %v", err)
-			return
-		}
-
 		if p.LatestVersion == "" {
 			s.Stop()
-			color.Red("No published versions found")
-			return
+			log.Fatal("No published versions found", nil)
 		}
 
 		s.Suffix = fmt.Sprintf(" Downloading %s@%s...", plugin, p.LatestVersion)
@@ -182,8 +174,10 @@ var installCmd = &cobra.Command{
 		)
 
 		filename := fmt.Sprintf("%s-%s%s", plugin, p.LatestVersion, ext)
-		downloadAndSave(s, client, downloadURL, filename)
-		color.Green("Installed %s@%s", plugin, p.LatestVersion)
+		if err := downloadAndSave(s, client, downloadURL, filename); err != nil {
+			log.Fatal("Failed to download", err)
+		}
+		log.Successf("Installed %s@%s", plugin, p.LatestVersion)
 	},
 }
 

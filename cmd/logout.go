@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/two-tech-dev/endgit-cli/internal/config"
+	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
 
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Logout of EndGit",
 	Run: func(cmd *cobra.Command, args []string) {
-		color.New(color.FgHiCyan, color.Bold).Println("Logging out of EndGit")
+		log.Info("Logging out of EndGit")
 
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 		s.Suffix = " Removing stored credentials..."
@@ -29,11 +29,10 @@ var logoutCmd = &cobra.Command{
 		s.Stop()
 
 		if err != nil {
-			color.Red("Failed to logout: %v", err)
-			return
+			log.Fatal("Failed to logout", err)
 		}
 
-		color.Green("Successfully logged out.")
+		log.Success("Successfully logged out")
 	},
 }
 

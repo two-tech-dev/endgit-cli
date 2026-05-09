@@ -1,17 +1,23 @@
+/*
+Copyright © 2026 Two Tech Studio
+*/
 package api
 
 import "runtime"
 
+// Response is the API response for plugin searches.
 type Response struct {
 	Success    bool       `json:"success"`
 	Data       Data       `json:"data"`
 	Pagination Pagination `json:"pagination"`
 }
 
+// Data contains plugin search results.
 type Data struct {
 	Plugins []Plugin `json:"plugins"`
 }
 
+// Plugin represents a single plugin in the registry.
 type Plugin struct {
 	ID              string   `json:"id"`
 	Name            string   `json:"name"`
@@ -36,12 +42,14 @@ type Plugin struct {
 	Author Author `json:"author"`
 }
 
+// Author represents a plugin author.
 type Author struct {
 	Username    string `json:"username"`
 	DisplayName string `json:"displayName"`
 	AvatarURL   string `json:"avatarUrl"`
 }
 
+// Pagination contains pagination information.
 type Pagination struct {
 	Page       int `json:"page"`
 	PageSize   int `json:"pageSize"`
@@ -49,6 +57,7 @@ type Pagination struct {
 	TotalPages int `json:"totalPages"`
 }
 
+// BuildResponse is the API response for build queries.
 type BuildResponse struct {
 	Success bool `json:"success"`
 	Data    struct {
@@ -56,6 +65,7 @@ type BuildResponse struct {
 	} `json:"data"`
 }
 
+// Build represents a single plugin build.
 type Build struct {
 	BuildNumber      int    `json:"buildNumber"`
 	CommitHash       string `json:"commitHash"`
@@ -65,6 +75,7 @@ type Build struct {
 	ArtifactURLLinux string `json:"artifactUrlLinux"`
 }
 
+// ResolveArtifactURL returns the appropriate artifact URL for the current OS.
 func (b *Build) ResolveArtifactURL() string {
 	switch runtime.GOOS {
 	case "windows":

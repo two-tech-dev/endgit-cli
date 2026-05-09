@@ -11,15 +11,15 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/two-tech-dev/endgit-cli/internal/api"
+	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update EndGit to the latest version",
-	Long:  `Checks for the latest release of EndGit and automatically downloads and installs it.`,
+	Long:  "Checks for the latest release of EndGit and automatically downloads and installs it.",
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := "two-tech-dev/endgit-cli"
 
@@ -38,31 +38,28 @@ var updateCmd = &cobra.Command{
 		latestURL, err := client.GetLatestReleaseAssetURL(repo, assetName)
 		if err != nil {
 			s.Stop()
-			color.Red("Failed to check for updates: %v", err)
-			return
+			log.Fatal("Failed to check for updates", err)
 		}
 
 		if latestURL == "" {
 			s.Stop()
-			color.Green("You are already on the latest version of EndGit.")
+			log.Success("You are already on the latest version of EndGit")
 			return
 		}
 
 		s.Stop()
-		color.Cyan("→ A new version is available! Installing update...")
+		log.Info("A new version is available! Installing update...")
 		fmt.Println()
 
 		// Resolve install path
 		installPath, err := resolveInstallPath()
 		if err != nil {
-			color.Red("Could not determine install path: %v", err)
-			return
+			log.Fatal("Could not determine install path", err)
 		}
 
 		installDir := filepath.Dir(installPath)
-		if err := os.MkdirAll(installDir, 0755); err != nil {
-			color.Red("Failed to create install directory: %v", err)
-			return
+		if err := os.MkdirAll(installDir, 0o755); err != nil {
+			log.Fatal("Failed to create install directory", err)
 		}
 
 		s.Suffix = " Downloading update..."
@@ -70,13 +67,12 @@ var updateCmd = &cobra.Command{
 
 		if err := client.DownloadFile(latestURL, installPath, nil); err != nil {
 			s.Stop()
-			color.Red("Failed to download update: %v", err)
-			return
+			log.Fatal("Failed to download update", err)
 		}
 
 		s.Stop()
-		color.Green("EndGit updated successfully!")
-		fmt.Printf("  Installed to: %s\n", installPath)
+		log.Success("EndGit updated successfully!")
+		log.Infof("Installed to: %s", installPath)
 	},
 }
 
@@ -85,7 +81,7 @@ func resolveInstallPath() (string, error) {
 	case "windows":
 		localAppData := os.Getenv("LOCALAPPDATA")
 		if localAppData == "" {
-			return "", fmt.Errorf("%%LOCALAPPDATA%% is not set")
+			return "", fmt.Errorf("LOCALAPPDATA environment variable not set")
 		}
 		return filepath.Join(localAppData, "endgit", "endgit.exe"), nil
 

@@ -4,17 +4,14 @@ Copyright © 2026 Two Tech Studio
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
 
 var endgit = color.New(color.FgCyan, color.Bold).Sprint("EndGit")
 
-var Version = "v0.1.3"
+const Version = "v0.1.3"
 
 var rootCmd = &cobra.Command{
 	Use:     "endgit",
@@ -26,21 +23,10 @@ A fast and modern CLI for managing Endstone plugins.
 Install, update, publish, and search plugins directly from your terminal.`,
 }
 
-func printInvalidCommand(args []string) {
-	red := color.New(color.FgRed, color.Bold)
-
-	fmt.Fprintf(
-		os.Stderr,
-		"%s Invalid command: %s\nSee --help for a list of available commands.\n",
-		red.Sprint("Error:"),
-		color.New(color.FgWhite).Sprint(strings.Join(args, " ")),
-	)
-}
-
+// Execute runs the root command
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		printInvalidCommand(os.Args[1:])
-		os.Exit(1)
+		log.Fatal("Invalid command", err)
 	}
 }
 

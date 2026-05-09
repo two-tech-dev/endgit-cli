@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
 
 type PluginJSON struct {
@@ -32,8 +32,7 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new Endstone plugin configuration",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		color.Cyan("Initialize Endstone Plugin\n")
+		log.Info("Initialize Endstone Plugin")
 
 		dir, _ := os.Getwd()
 		currentDir := filepath.Base(dir)
@@ -70,8 +69,8 @@ var initCmd = &cobra.Command{
 		}
 
 		if name == "" {
-			color.Red("Initialization cancelled.")
-			os.Exit(1)
+			log.Warn("Initialization cancelled")
+			return
 		}
 
 		plugin := PluginJSON{
@@ -90,8 +89,7 @@ var initCmd = &cobra.Command{
 		endgitPath := filepath.Join(dir, "endgit.json")
 
 		if err := writeJSON(pluginPath, plugin); err != nil {
-			color.Red("Failed to write plugin.json: %v", err)
-			os.Exit(1)
+			log.Fatal("Failed to write plugin.json", err)
 		}
 
 		endgit := EndgitJSON{
@@ -100,12 +98,11 @@ var initCmd = &cobra.Command{
 		}
 
 		if err := writeJSON(endgitPath, endgit); err != nil {
-			color.Red("Failed to write endgit.json: %v", err)
-			os.Exit(1)
+			log.Fatal("Failed to write endgit.json", err)
 		}
 
-		color.Green("\nSuccessfully created plugin.json and endgit.json.")
-		color.HiBlack("You can now run endgit publish to push your plugin.")
+		log.Success("Created plugin.json and endgit.json")
+		log.Info("You can now run 'endgit publish' to push your plugin")
 	},
 }
 
@@ -113,12 +110,12 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
-func writeJSON(path string, v any) error {
+func writeJSON(path string, v interface{}) error {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o644)
 }
 
 func sanitizeSlug(s string) string {

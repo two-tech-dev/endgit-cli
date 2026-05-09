@@ -12,6 +12,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/two-tech-dev/endgit-cli/internal/api"
+	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
 
 var searchCmd = &cobra.Command{
@@ -24,29 +25,28 @@ var searchCmd = &cobra.Command{
 		s := spinner.New(spinner.CharSets[14], 120*time.Millisecond)
 		s.Suffix = fmt.Sprintf(" Searching for \"%s\"...", query)
 		s.Start()
-		client := api.NewClient()
 
+		client := api.NewClient()
 		response, err := client.GetPlugins(query)
 
 		s.Stop()
 
 		if err != nil {
-			color.Red("Search failed: %v", err)
-			return
+			log.Fatal("Search failed", err)
 		}
 
 		plugins := response.Data.Plugins
 
 		if len(plugins) == 0 {
-			color.Yellow("No plugins found matching \"%s\".", query)
+			log.Warnf("No plugins found matching \"%s\"", query)
 			return
 		}
 
-		color.Cyan("\nFound %d plugin(s):\n", len(plugins))
-		color.HiBlack(strings.Repeat("-", 80))
+		fmt.Printf("\nFound %d plugin(s):\n\n", len(plugins))
+		fmt.Println(strings.Repeat("-", 80))
 
 		for _, p := range plugins {
-			// type badge
+			// Type badge
 			typeStr := ""
 			if strings.ToUpper(p.PluginType) == "PYTHON" {
 				typeStr = color.HiGreenString("[PY]")
@@ -70,8 +70,8 @@ var searchCmd = &cobra.Command{
 			fmt.Printf("%s\n", color.HiBlackString(p.Description))
 		}
 
-		color.HiBlack(strings.Repeat("-", 80))
-		color.White("\nRun %s to install.\n",
+		fmt.Println(strings.Repeat("-", 80))
+		fmt.Printf("\nRun %s to install.\n\n",
 			color.HiWhiteString("endgit install <plugin>"),
 		)
 	},
