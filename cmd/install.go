@@ -35,6 +35,15 @@ func resolveExt(pluginType string) string {
 	}
 }
 
+func buildFilename(name, version, pluginType string) string {
+	ext := resolveExt(pluginType)
+	if strings.ToLower(pluginType) == "python" {
+		safeName := strings.ReplaceAll(name, "-", "_")
+		return fmt.Sprintf("%s-%s-py3-none-any%s", safeName, version, ext)
+	}
+	return fmt.Sprintf("%s-%s%s", name, version, ext)
+}
+
 func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filename string) error {
 	if err := os.MkdirAll("plugins", 0o755); err != nil {
 		s.Stop()
@@ -93,7 +102,6 @@ var installCmd = &cobra.Command{
 			s.Stop()
 			log.Fatal("Failed to fetch plugin", err)
 		}
-		ext := resolveExt(p.PluginType)
 
 		// DEV BUILD (COMMIT)
 		if commit != "" {
@@ -124,7 +132,8 @@ var installCmd = &cobra.Command{
 			s.Suffix = fmt.Sprintf(" Downloading build #%d...", target.BuildNumber)
 
 			url := target.ResolveArtifactURL()
-			filename := fmt.Sprintf("%s-build%d-%s%s", plugin, target.BuildNumber, commit[:7], ext)
+			devVersion := fmt.Sprintf("build%d.%s", target.BuildNumber, commit[:7])
+			filename := buildFilename(plugin, devVersion, p.PluginType)
 
 			if err := downloadAndSave(s, client, url, filename); err != nil {
 				log.Fatal("Failed to download", err)
@@ -146,7 +155,7 @@ var installCmd = &cobra.Command{
 				runtime.GOOS,
 			)
 
-			filename := fmt.Sprintf("%s-%s%s", plugin, version, ext)
+			filename := buildFilename(plugin, version, p.PluginType)
 			if err := downloadAndSave(s, client, downloadURL, filename); err != nil {
 				log.Fatal("Failed to download", err)
 			}
@@ -173,7 +182,7 @@ var installCmd = &cobra.Command{
 			runtime.GOOS,
 		)
 
-		filename := fmt.Sprintf("%s-%s%s", plugin, p.LatestVersion, ext)
+		filename := buildFilename(plugin, p.LatestVersion, p.PluginType)
 		if err := downloadAndSave(s, client, downloadURL, filename); err != nil {
 			log.Fatal("Failed to download", err)
 		}
