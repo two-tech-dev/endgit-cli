@@ -82,12 +82,35 @@ var updateCmd = &cobra.Command{
 			log.Fatal("Failed to create install directory", err)
 		}
 
+		// On Windows the running binary is locked and can't be overwritten.
+		// Rename it out of the way first (Windows allows renaming locked files).
+		oldPath := installPath + ".old"
+		if runtime.GOOS == "windows" {
+			if _, err := os.Stat(installPath); err == nil {
+				os.Remove(oldPath) // clean up any previous .old file
+				if err := os.Rename(installPath, oldPath); err != nil {
+					log.Fatal("Failed to move current binary for replacement", err)
+				}
+			}
+		}
+
 		s.Suffix = " Downloading update..."
 		s.Start()
 
 		if err := client.DownloadFile(latestURL, installPath, nil); err != nil {
 			s.Stop()
+			// Restore the old binary if download failed
+			if runtime.GOOS == "windows" {
+				if _, statErr := os.Stat(oldPath); statErr == nil {
+					os.Rename(oldPath, installPath)
+				}
+			}
 			log.Fatal("Failed to download update", err)
+		}
+
+		// Clean up the old binary
+		if runtime.GOOS == "windows" {
+			os.Remove(oldPath)
 		}
 
 		s.Stop()
