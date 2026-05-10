@@ -11,7 +11,7 @@ EndGit CLI allows developers to publish, search, and install Endstone plugins di
 irm https://endgit.dev/installer.ps1 | iex
 ```
 
-**Linux:**
+**Linux / macOS:**
 ```bash
 curl -sSL https://endgit.dev/installer.sh | bash
 ```
@@ -23,36 +23,26 @@ curl -sSL https://endgit.dev/installer.sh | bash
 # Login with your EndGit account
 endgit login
 
-# Publish a plugin
-endgit publish
-
 # Search plugins
 endgit search <query>
 
-# Install a plugin
-endgit install <plugin-name>
-```
+# View plugin details
+endgit info <plugin>
 
-## Building
+# Install a plugin (latest version)
+endgit install <plugin>
 
-### Requirements
+# Install a specific version
+endgit install <plugin>@1.2.0
 
-- Install Go 1.22 or newer
-- Make sure your `GOPATH/bin` is added to your system `PATH`
+# Install a dev build by commit
+endgit install <plugin>@abc1234
 
-### Build from Source
+# Initialize a new plugin project
+endgit init
 
-```bash
-git clone https://github.com/two-tech-dev/endgit-cli.git
-cd endgit-cli
-
-go build -o endgit
-```
-
-### Run Locally
-
-```bash
-go run .
+# Update EndGit to the latest version
+endgit update
 ```
 
 ## Commands
@@ -61,9 +51,38 @@ go run .
 |---------|-------------|
 | `endgit login` | Authenticate with EndGit |
 | `endgit logout` | Logout of EndGit |
+| `endgit search <query>` | Search the plugin marketplace |
+| `endgit info <plugin>` | Show detailed plugin information |
+| `endgit install <plugin[@version]>` | Install a plugin to your server |
+| `endgit init` | Initialize a new plugin project |
 | `endgit publish` | Package and publish your plugin |
-| `endgit search` | Search the plugin marketplace |
-| `endgit install` | Install a plugin to your server |
+| `endgit update` | Update EndGit CLI to the latest version |
+
+## Building
+
+### Requirements
+
+- Go 1.26+ (see `go.mod` for exact version)
+- `GOPATH/bin` added to your system `PATH`
+
+### Build from Source
+
+```bash
+git clone https://github.com/two-tech-dev/endgit-cli.git
+cd endgit-cli
+
+# Development build
+go build -o endgit .
+
+# Production build (with version injection)
+go build -ldflags="-s -w -X github.com/two-tech-dev/endgit-cli/cmd.Version=v0.1.5" -o endgit .
+```
+
+### Run Locally
+
+```bash
+go run .
+```
 
 ## License
 
