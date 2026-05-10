@@ -20,34 +20,38 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
       
       - name: Get version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
       
-      - name: Build Windows binary
+      - name: Build binaries
         env:
-          GOOS: windows
-          GOARCH: amd64
           CGO_ENABLED: 0
         run: |
-          go build -ldflags="-s -w" -o endgit-windows-amd64.exe .
+          VERSION=${{ steps.version.outputs.VERSION }}
+          LDFLAGS="-s -w -X github.com/two-tech-dev/endgit-cli/cmd.Version=${VERSION}"
+
+          GOOS=windows GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o endgit-windows-amd64.exe .
+          GOOS=linux   GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o endgit-linux-amd64 .
+          GOOS=darwin  GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o endgit-darwin-amd64 .
+          GOOS=darwin  GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o endgit-darwin-arm64 .
       
-      - name: Build Linux binary
-        env:
-          GOOS: linux
-          GOARCH: amd64
-          CGO_ENABLED: 0
+      - name: Generate checksums
         run: |
-          go build -ldflags="-s -w" -o endgit-linux-amd64 .
+          sha256sum endgit-* > checksums.txt
+          cat checksums.txt
       
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             endgit-windows-amd64.exe
             endgit-linux-amd64
+            endgit-darwin-amd64
+            endgit-darwin-arm64
+            checksums.txt
           body: |
             ## EndGit ${{ steps.version.outputs.VERSION }}
             
@@ -58,7 +62,7 @@ jobs:
             irm https://endgit.dev/installer.ps1 | iex
             ```
             
-            **Linux:**
+            **Linux / macOS:**
             ```bash
             curl -sSL https://endgit.dev/installer.sh | bash
             ```
@@ -67,7 +71,12 @@ jobs:
             ```
             endgit login
             endgit search <plugin>
+            endgit install <plugin>
+            endgit info <plugin>
             ```
+            
+            ### Checksums
+            See `checksums.txt` for SHA-256 verification.
           draft: false
           prerelease: false
         env:
