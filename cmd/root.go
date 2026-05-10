@@ -4,6 +4,9 @@ Copyright © 2026 Two Tech Studio
 package cmd
 
 import (
+	"fmt"
+	"runtime"
+
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/two-tech-dev/endgit-cli/internal/log"
@@ -11,7 +14,9 @@ import (
 
 var endgit = color.New(color.FgCyan, color.Bold).Sprint("EndGit")
 
-const Version = "v0.1.4"
+// Version is set at build time via -ldflags.
+// Falls back to "dev" for local builds.
+var Version = "dev"
 
 var rootCmd = &cobra.Command{
 	Use:     "endgit",
@@ -36,4 +41,10 @@ func init() {
 
 	rootCmd.SilenceErrors = true
 	rootCmd.SilenceUsage = true
+
+	// Custom version template with OS/arch info
+	rootCmd.SetVersionTemplate(fmt.Sprintf(
+		"%s CLI %s (%s/%s)\n",
+		endgit, Version, runtime.GOOS, runtime.GOARCH,
+	))
 }

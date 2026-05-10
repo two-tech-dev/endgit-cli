@@ -34,13 +34,20 @@ var initCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info("Initialize Endstone Plugin")
 
-		dir, _ := os.Getwd()
+		dir, err := os.Getwd()
+		if err != nil {
+			log.Fatal("Failed to determine current directory", err)
+		}
 		currentDir := filepath.Base(dir)
 
 		reader := bufio.NewReader(os.Stdin)
 
 		read := func(prompt, def string) string {
-			fmt.Printf("%s [%s]: ", prompt, def)
+			if def != "" {
+				fmt.Printf("%s [%s]: ", prompt, def)
+			} else {
+				fmt.Printf("%s: ", prompt)
+			}
 			input, _ := reader.ReadString('\n')
 			input = strings.TrimSpace(input)
 			if input == "" {
@@ -88,16 +95,24 @@ var initCmd = &cobra.Command{
 		pluginPath := filepath.Join(dir, "plugin.json")
 		endgitPath := filepath.Join(dir, "endgit.json")
 
+		// Warn if files already exist
+		if _, err := os.Stat(pluginPath); err == nil {
+			log.Warn("plugin.json already exists and will be overwritten")
+		}
+		if _, err := os.Stat(endgitPath); err == nil {
+			log.Warn("endgit.json already exists and will be overwritten")
+		}
+
 		if err := writeJSON(pluginPath, plugin); err != nil {
 			log.Fatal("Failed to write plugin.json", err)
 		}
 
-		endgit := EndgitJSON{
+		endgitCfg := EndgitJSON{
 			DisplayName: displayName,
 			PluginType:  pluginType,
 		}
 
-		if err := writeJSON(endgitPath, endgit); err != nil {
+		if err := writeJSON(endgitPath, endgitCfg); err != nil {
 			log.Fatal("Failed to write endgit.json", err)
 		}
 
@@ -115,6 +130,7 @@ func writeJSON(path string, v interface{}) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
+	data = append(data, '\n')
 	return os.WriteFile(path, data, 0o644)
 }
 

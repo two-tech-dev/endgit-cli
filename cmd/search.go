@@ -22,7 +22,7 @@ var searchCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		query := strings.Join(args, " ")
 
-		s := spinner.New(spinner.CharSets[14], 120*time.Millisecond)
+		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 		s.Suffix = fmt.Sprintf(" Searching for \"%s\"...", query)
 		s.Start()
 
@@ -43,7 +43,7 @@ var searchCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\nFound %d plugin(s):\n\n", len(plugins))
-		fmt.Println(strings.Repeat("-", 80))
+		fmt.Println(strings.Repeat("─", 80))
 
 		for _, p := range plugins {
 			// Type badge
@@ -60,18 +60,21 @@ var searchCmd = &cobra.Command{
 			versionStr := color.MagentaString("v%s", fallbackVersion(p.LatestVersion))
 			downloadsStr := color.YellowString("%d ⬇", p.Downloads)
 
-			fmt.Printf("%s %s | %s | %s\n",
+			fmt.Printf("%s %s │ %s │ %s\n",
 				typeStr,
 				nameStr,
 				versionStr,
 				downloadsStr,
 			)
 
-			fmt.Printf("%s\n", color.HiBlackString(p.Description))
+			if p.Description != "" {
+				fmt.Printf("     %s\n", color.HiBlackString(p.Description))
+			}
 		}
 
-		fmt.Println(strings.Repeat("-", 80))
-		fmt.Printf("\nRun %s to install.\n\n",
+		fmt.Println(strings.Repeat("─", 80))
+		fmt.Printf("\nRun %s to view details, or %s to install.\n\n",
+			color.HiWhiteString("endgit info <plugin>"),
 			color.HiWhiteString("endgit install <plugin>"),
 		)
 	},

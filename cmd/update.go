@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -29,6 +30,31 @@ var updateCmd = &cobra.Command{
 
 		client := api.NewClient()
 
+		// Check what the latest version is
+		latestTag, err := client.GetLatestReleaseTag(repo)
+		if err != nil {
+			s.Stop()
+			log.Fatal("Failed to check for updates", err)
+		}
+
+		// Compare with current version
+		currentVersion := strings.TrimPrefix(Version, "v")
+		latestVersion := strings.TrimPrefix(latestTag, "v")
+
+		if currentVersion == latestVersion {
+			s.Stop()
+			log.Successf("You are already on the latest version (%s)", Version)
+			return
+		}
+
+		if Version == "dev" {
+			s.Stop()
+			log.Warn("Running a development build — skipping auto-update")
+			log.Infof("Latest release: %s", latestTag)
+			log.Info("Download from: https://github.com/two-tech-dev/endgit-cli/releases/latest")
+			return
+		}
+
 		ext := ""
 		if runtime.GOOS == "windows" {
 			ext = ".exe"
@@ -38,17 +64,11 @@ var updateCmd = &cobra.Command{
 		latestURL, err := client.GetLatestReleaseAssetURL(repo, assetName)
 		if err != nil {
 			s.Stop()
-			log.Fatal("Failed to check for updates", err)
-		}
-
-		if latestURL == "" {
-			s.Stop()
-			log.Success("You are already on the latest version of EndGit")
-			return
+			log.Fatal("Failed to find update binary for your platform", err)
 		}
 
 		s.Stop()
-		log.Info("A new version is available! Installing update...")
+		log.Infof("Updating %s → %s", Version, latestTag)
 		fmt.Println()
 
 		// Resolve install path

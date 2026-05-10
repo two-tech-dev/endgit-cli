@@ -10,11 +10,6 @@ import (
 	"github.com/fatih/color"
 )
 
-// Logger provides unified error, warning, info, and debug logging
-type Logger struct{}
-
-var logger = &Logger{}
-
 // Error logs an error message and returns the error for potential exit handling
 func Error(msg string, err error) error {
 	red := color.New(color.FgRed, color.Bold)
@@ -94,14 +89,4 @@ func Fatal(msg string, err error) {
 func Fatalf(format string, args ...interface{}) {
 	Errorf(format, args...)
 	os.Exit(1)
-}
-
-// Exit logs an error and exits with the given code
-func Exit(code int, msg string, err error) {
-	if err != nil {
-		Error(msg, err)
-	} else {
-		fmt.Fprintf(os.Stderr, "%s %s\n", color.New(color.FgRed, color.Bold).Sprint("Error:"), msg)
-	}
-	os.Exit(code)
 }

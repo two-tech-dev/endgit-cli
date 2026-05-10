@@ -35,9 +35,13 @@ func resolveExt(pluginType string) string {
 	}
 }
 
+// buildFilename constructs a download filename. For Python plugins it produces
+// a PEP 427-compliant wheel name (e.g. "name-1.0.0-py3-none-any.whl") so that
+// pip / importlib can load the file without renaming.
 func buildFilename(name, version, pluginType string) string {
 	ext := resolveExt(pluginType)
 	if strings.ToLower(pluginType) == "python" {
+		// Wheel filenames use underscores, not hyphens, in the distribution name.
 		safeName := strings.ReplaceAll(name, "-", "_")
 		return fmt.Sprintf("%s-%s-py3-none-any%s", safeName, version, ext)
 	}
@@ -72,26 +76,44 @@ func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filenam
 	return nil
 }
 
+// parsePluginInput splits "plugin@version" or "plugin@commitHash" into its components.
+func parsePluginInput(input string) (plugin, version, commit string, err error) {
+	parts := strings.SplitN(input, "@", 2)
+	plugin = strings.TrimSpace(parts[0])
+
+	if plugin == "" {
+		return "", "", "", fmt.Errorf("plugin name cannot be empty")
+	}
+
+	if len(parts) > 1 {
+		value := strings.TrimSpace(parts[1])
+		if value == "" {
+			return "", "", "", fmt.Errorf("version or commit hash cannot be empty after @")
+		}
+		if len(value) >= 7 && common.IsHex(value) {
+			commit = value
+		} else {
+			version = value
+		}
+	}
+
+	return plugin, version, commit, nil
+}
+
 var installCmd = &cobra.Command{
 	Use:   "install <plugin[@version|@commit]>",
 	Short: "Download and install a plugin to the current directory",
-	Args:  cobra.MinimumNArgs(1),
+	Long: `Download and install a plugin from the EndGit registry.
+
+Examples:
+  endgit install my-plugin              Install the latest stable version
+  endgit install my-plugin@1.2.0        Install a specific version
+  endgit install my-plugin@abc1234      Install a specific dev build by commit`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		input := args[0]
-
-		var plugin, version, commit string
-
-		parts := strings.Split(input, "@")
-		plugin = parts[0]
-
-		if len(parts) > 1 {
-			value := parts[1]
-
-			if len(value) >= 7 && common.IsHex(value) {
-				commit = value
-			} else {
-				version = value
-			}
+		plugin, version, commit, err := parsePluginInput(args[0])
+		if err != nil {
+			log.Fatal("Invalid input", err)
 		}
 
 		client := api.NewClient()
