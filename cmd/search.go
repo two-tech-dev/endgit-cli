@@ -43,36 +43,60 @@ var searchCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\nFound %d plugin(s):\n\n", len(plugins))
-		fmt.Println(strings.Repeat("─", 80))
 
+		// Compute column widths from actual data
+		maxName := 4
+		maxVer := 6
 		for _, p := range plugins {
-			// Type badge
-			typeStr := ""
-			if strings.ToUpper(p.PluginType) == "PYTHON" {
-				typeStr = color.HiGreenString("[PY]")
-			} else {
-				typeStr = color.HiBlueString("[C++]")
+			if len(p.Name) > maxName {
+				maxName = len(p.Name)
 			}
-
-			nameStr := color.New(color.FgHiWhite, color.Bold).
-				Sprintf("%-20s", p.Name)
-
-			versionStr := color.MagentaString("v%s", fallbackVersion(p.LatestVersion))
-			downloadsStr := color.YellowString("%d ⬇", p.Downloads)
-
-			fmt.Printf("%s %s │ %s │ %s\n",
-				typeStr,
-				nameStr,
-				versionStr,
-				downloadsStr,
-			)
-
-			if p.Description != "" {
-				fmt.Printf("     %s\n", color.HiBlackString(p.Description))
+			if v := "v" + fallbackVersion(p.LatestVersion); len(v) > maxVer {
+				maxVer = len(v)
 			}
 		}
 
-		fmt.Println(strings.Repeat("─", 80))
+		const typeWidth = 5 // both "[C++]" and "[PY] " are 5 visible chars
+		lineWidth := typeWidth + 1 + maxName + 3 + maxVer + 3 + 10
+		if lineWidth < 60 {
+			lineWidth = 60
+		}
+		sep := strings.Repeat("─", lineWidth)
+
+		fmt.Println(sep)
+
+		for _, p := range plugins {
+			// Type badge — normalise to 5 visible chars
+			tag := "[PY] "
+			tagStr := color.HiGreenString(tag)
+			if strings.ToUpper(p.PluginType) != "PYTHON" {
+				tag = "[C++]"
+				tagStr = color.HiBlueString(tag)
+			}
+
+			// Pad plain strings BEFORE colorizing (avoids ANSI skewing width)
+			namePad := fmt.Sprintf("%-*s", maxName, p.Name)
+			nameStr := color.New(color.FgHiWhite, color.Bold).Sprint(namePad)
+
+			verPad := fmt.Sprintf("%-*s", maxVer, "v"+fallbackVersion(p.LatestVersion))
+			versionStr := color.MagentaString(verPad)
+
+			dlStr := color.YellowString("%d ⬇", p.Downloads)
+
+			fmt.Printf("%s %s │ %s │ %s\n", tagStr, nameStr, versionStr, dlStr)
+
+			if p.Description != "" {
+				indent := strings.Repeat(" ", typeWidth+1)
+				maxDesc := lineWidth - typeWidth - 1
+				desc := p.Description
+				if len(desc) > maxDesc {
+					desc = desc[:maxDesc-3] + "..."
+				}
+				fmt.Printf("%s%s\n", indent, color.HiBlackString(desc))
+			}
+		}
+
+		fmt.Println(sep)
 		fmt.Printf("\nRun %s to view details, or %s to install.\n\n",
 			color.HiWhiteString("endgit info <plugin>"),
 			color.HiWhiteString("endgit install <plugin>"),
