@@ -33,6 +33,9 @@ var loginCmd = &cobra.Command{
 		log.Info("Enter code:")
 		fmt.Printf("  %s\n\n", deviceResp.UserCode)
 
+		fmt.Print("Press Enter to open the browser... ")
+		fmt.Scanln()
+
 		openBrowser(deviceResp.VerificationURI)
 
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
