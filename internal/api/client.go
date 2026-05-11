@@ -4,6 +4,8 @@ Copyright © 2026 Two Tech Studio
 package api
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/two-tech-dev/endgit-cli/internal/config"
@@ -44,12 +47,26 @@ type Client struct {
 
 // NewClient creates a new EndGit API client.
 // The client automatically attaches the stored API token (if any) to every request.
+// If the stored access token is expired (or expiring within 5 minutes) and a
+// refresh token is available, the tokens are silently refreshed before use.
 func NewClient() *Client {
 	cfg := config.GetConfig()
 
 	base := cfg.APIURL
 	if base == "" {
 		base = "https://api.endgit.dev"
+	}
+
+	if cfg.APIToken != "" && cfg.RefreshToken != "" {
+		if jwtExpiresWithin(cfg.APIToken, 5*time.Minute) {
+			if refreshed, err := doRefreshTokens(base+"/api/v1", cfg.RefreshToken); err == nil {
+				cfg.APIToken = refreshed.AccessToken
+				cfg.RefreshToken = refreshed.RefreshToken
+				_ = config.SaveConfig(cfg)
+			} else {
+				log.Debugf("Token refresh failed: %v", err)
+			}
+		}
 	}
 
 	return &Client{
@@ -62,6 +79,79 @@ func NewClient() *Client {
 			},
 		},
 	}
+}
+
+// jwtExpiresWithin returns true if the JWT's exp claim is within the given
+// duration from now (also returns true if the token is already expired).
+func jwtExpiresWithin(token string, d time.Duration) bool {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return false
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+	var claims struct {
+		Exp int64 `json:"exp"`
+	}
+	if json.Unmarshal(payload, &claims) != nil || claims.Exp == 0 {
+		return false
+	}
+	return time.Now().Add(d).Unix() >= claims.Exp
+}
+
+// doRefreshTokens exchanges a refresh token for a new access + refresh token pair.
+func doRefreshTokens(baseURL, refreshToken string) (*RefreshResponse, error) {
+	body, _ := json.Marshal(map[string]string{"refresh_token": refreshToken})
+	req, err := http.NewRequest("POST", baseURL+"/auth/refresh", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "endgit-cli")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("refresh failed: HTTP %s", resp.Status)
+	}
+
+	var result struct {
+		Success bool            `json:"success"`
+		Data    RefreshResponse `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	if !result.Success {
+		return nil, fmt.Errorf("refresh failed: server returned success=false")
+	}
+	return &result.Data, nil
+}
+
+// RefreshTokens exchanges the given refresh token for a new token pair and
+// persists the result to the config file.
+func RefreshTokens(refreshToken string) (*RefreshResponse, error) {
+	cfg := config.GetConfig()
+	base := cfg.APIURL
+	if base == "" {
+		base = "https://api.endgit.dev"
+	}
+	result, err := doRefreshTokens(base+"/api/v1", refreshToken)
+	if err != nil {
+		return nil, err
+	}
+	cfg.APIToken = result.AccessToken
+	cfg.RefreshToken = result.RefreshToken
+	if saveErr := config.SaveConfig(cfg); saveErr != nil {
+		log.Debugf("Failed to save refreshed tokens: %v", saveErr)
+	}
+	return result, nil
 }
 
 // doGetWithRetry performs a GET request with exponential backoff retry on transient errors.
@@ -327,4 +417,83 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+func (c *Client) doPost(rawURL string, body interface{}) (*http.Response, error) {
+	var reqBody io.Reader
+	if body != nil {
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(body); err != nil {
+			return nil, fmt.Errorf("failed to encode request body: %w", err)
+		}
+		reqBody = &buf
+	}
+
+	req, err := http.NewRequest(http.MethodPost, rawURL, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	return c.HTTP.Do(req)
+}
+
+func (c *Client) RequestDeviceCode() (*DeviceCodeResponse, error) {
+	u := fmt.Sprintf("%s/auth/device", c.BaseURL)
+
+	resp, err := c.doPost(u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to request device code: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, apiError(resp)
+	}
+
+	var result struct {
+		Success bool               `json:"success"`
+		Data    DeviceCodeResponse `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode device code response: %w", err)
+	}
+
+	return &result.Data, nil
+}
+
+func (c *Client) PollDeviceToken(deviceCode string) (*DeviceTokenResponse, error) {
+	u := fmt.Sprintf("%s/auth/device/token", c.BaseURL)
+
+	resp, err := c.doPost(u, map[string]string{"device_code": deviceCode})
+	if err != nil {
+		return nil, fmt.Errorf("failed to poll device token: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode == http.StatusOK {
+		var result struct {
+			Success bool                `json:"success"`
+			Data    DeviceTokenResponse `json:"data"`
+		}
+		if err := json.Unmarshal(body, &result); err != nil {
+			return nil, fmt.Errorf("failed to decode token response: %w", err)
+		}
+		return &result.Data, nil
+	}
+
+	// Extract the RFC 8628 error code (authorization_pending, slow_down, etc.)
+	var errResp struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+	}
+	if json.Unmarshal(body, &errResp) == nil && errResp.Error != "" {
+		return nil, &DeviceAuthError{Code: errResp.Error}
+	}
+
+	return nil, fmt.Errorf("unexpected response: HTTP %s", resp.Status)
 }

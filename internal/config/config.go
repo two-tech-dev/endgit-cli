@@ -12,8 +12,9 @@ import (
 
 // EndGitConfig represents the EndGit CLI configuration.
 type EndGitConfig struct {
-	APIToken string `json:"apiToken,omitempty"`
-	APIURL   string `json:"apiUrl,omitempty"`
+	APIToken     string `json:"apiToken,omitempty"`
+	RefreshToken string `json:"refreshToken,omitempty"`
+	APIURL       string `json:"apiUrl,omitempty"`
 }
 
 const defaultAPIURL = "https://api.endgit.dev"

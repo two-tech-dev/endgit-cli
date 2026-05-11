@@ -57,6 +57,39 @@ type Pagination struct {
 	TotalPages int `json:"totalPages"`
 }
 
+// DeviceCodeResponse is returned when requesting a device authorization code.
+type DeviceCodeResponse struct {
+	DeviceCode      string `json:"device_code"`
+	UserCode        string `json:"user_code"`
+	VerificationURI string `json:"verification_uri"`
+	ExpiresIn       int    `json:"expires_in"`
+	Interval        int    `json:"interval"`
+}
+
+// DeviceTokenResponse is returned when the device authorization is complete.
+type DeviceTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	Username     string `json:"username"`
+}
+
+// RefreshResponse is returned by the /auth/refresh endpoint.
+type RefreshResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	Username     string `json:"username"`
+}
+
+// DeviceAuthError represents a protocol-level error during device authorization polling.
+type DeviceAuthError struct {
+	Code string
+}
+
+func (e *DeviceAuthError) Error() string {
+	return e.Code
+}
+
 // BuildResponse is the API response for build queries.
 type BuildResponse struct {
 	Success bool `json:"success"`
