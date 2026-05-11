@@ -26,7 +26,6 @@ type EndGitConfig struct {
 	APIURL       string `json:"apiUrl,omitempty"`
 }
 
-
 func configDir() (string, error) {
 	dir, err := os.UserHomeDir()
 	if err != nil {
@@ -100,27 +99,31 @@ func SaveConfig(config EndGitConfig) error {
 	}
 
 	// Handle tokens in keyring
+	keyringAvailable := true
+
 	if config.APIToken != "" {
 		if err := keyring.Set(serviceName, tokenKey, config.APIToken); err != nil {
-			return fmt.Errorf("failed to save API token to keyring: %w", err)
+			keyringAvailable = false
 		}
 	} else {
-		// If empty, attempt to delete (ignore error if not found)
 		_ = keyring.Delete(serviceName, tokenKey)
 	}
 
 	if config.RefreshToken != "" {
 		if err := keyring.Set(serviceName, refreshKey, config.RefreshToken); err != nil {
-			return fmt.Errorf("failed to save refresh token to keyring: %w", err)
+			keyringAvailable = false
 		}
 	} else {
 		_ = keyring.Delete(serviceName, refreshKey)
 	}
 
-	// Create a copy to avoid mutating the original struct while clearing tokens for JSON
+	// Create a copy for JSON storage
 	jsonCfg := config
-	jsonCfg.APIToken = ""
-	jsonCfg.RefreshToken = ""
+	if keyringAvailable {
+		// If keyring worked, we don't need tokens in the JSON file
+		jsonCfg.APIToken = ""
+		jsonCfg.RefreshToken = ""
+	}
 
 	data, err := json.MarshalIndent(jsonCfg, "", "  ")
 	if err != nil {
