@@ -8,6 +8,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/zalando/go-keyring"
+)
+
+const (
+	defaultAPIURL = "https://api.endgit.dev"
+	serviceName   = "endgit-cli"
+	tokenKey      = "api-token"
+	refreshKey    = "refresh-token"
 )
 
 // EndGitConfig represents the EndGit CLI configuration.
@@ -17,7 +26,6 @@ type EndGitConfig struct {
 	APIURL       string `json:"apiUrl,omitempty"`
 }
 
-const defaultAPIURL = "https://api.endgit.dev"
 
 func configDir() (string, error) {
 	dir, err := os.UserHomeDir()
@@ -63,6 +71,14 @@ func GetConfig() EndGitConfig {
 		cfg.APIURL = defaultAPIURL
 	}
 
+	// Try to load tokens from keyring
+	if token, err := keyring.Get(serviceName, tokenKey); err == nil {
+		cfg.APIToken = token
+	}
+	if refresh, err := keyring.Get(serviceName, refreshKey); err == nil {
+		cfg.RefreshToken = refresh
+	}
+
 	return cfg
 }
 
@@ -83,7 +99,30 @@ func SaveConfig(config EndGitConfig) error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	data, err := json.MarshalIndent(config, "", "  ")
+	// Handle tokens in keyring
+	if config.APIToken != "" {
+		if err := keyring.Set(serviceName, tokenKey, config.APIToken); err != nil {
+			return fmt.Errorf("failed to save API token to keyring: %w", err)
+		}
+	} else {
+		// If empty, attempt to delete (ignore error if not found)
+		_ = keyring.Delete(serviceName, tokenKey)
+	}
+
+	if config.RefreshToken != "" {
+		if err := keyring.Set(serviceName, refreshKey, config.RefreshToken); err != nil {
+			return fmt.Errorf("failed to save refresh token to keyring: %w", err)
+		}
+	} else {
+		_ = keyring.Delete(serviceName, refreshKey)
+	}
+
+	// Create a copy to avoid mutating the original struct while clearing tokens for JSON
+	jsonCfg := config
+	jsonCfg.APIToken = ""
+	jsonCfg.RefreshToken = ""
+
+	data, err := json.MarshalIndent(jsonCfg, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}

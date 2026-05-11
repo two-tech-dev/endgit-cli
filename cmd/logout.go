@@ -24,6 +24,7 @@ var logoutCmd = &cobra.Command{
 
 		cfg := config.GetConfig()
 		cfg.APIToken = ""
+		cfg.RefreshToken = ""
 		err := config.SaveConfig(cfg)
 
 		s.Stop()
