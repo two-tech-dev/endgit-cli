@@ -16,7 +16,7 @@ var endgit = color.New(color.FgCyan, color.Bold).Sprint("EndGit")
 
 // Version is set at build time via -ldflags.
 // Falls back to "dev" for local builds.
-var Version = "0.1.6"
+var Version = "0.1.7"
 
 var rootCmd = &cobra.Command{
 	Use:     "endgit",
