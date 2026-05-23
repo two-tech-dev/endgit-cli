@@ -12,7 +12,7 @@ var publishCmd = &cobra.Command{
 	Use:   "publish",
 	Short: "Publish a plugin to the EndGit registry",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Info("Publishing plugins is not yet implemented")
+		log.Warn("Publishing plugins is not yet implemented")
 	},
 }
 

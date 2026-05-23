@@ -9,12 +9,23 @@ import (
 	"runtime"
 	"time"
 
+	box "github.com/box-cli-maker/box-cli-maker/v3"
 	"github.com/briandowns/spinner"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/two-tech-dev/endgit-cli/internal/api"
 	"github.com/two-tech-dev/endgit-cli/internal/config"
 	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
+
+var loginBox = box.NewBox().
+		Style(box.Double).
+		Padding(2, 1).
+		TitlePosition(box.Top).
+		ContentAlign(box.Center).
+		Color(box.Cyan).
+		TitleColor(box.BrightCyan).
+		ContentColor(box.BrightWhite)
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
@@ -27,13 +38,12 @@ var loginCmd = &cobra.Command{
 			log.Fatal("Failed to initiate device authorization", err)
 		}
 
-		fmt.Println()
-		log.Info("Open the following URL in your browser:")
-		fmt.Printf("  %s\n\n", deviceResp.VerificationURI)
-		log.Info("Enter code:")
-		fmt.Printf("  %s\n\n", deviceResp.UserCode)
+		out := loginBox.MustRender(
+			"Device Authorization",
+			fmt.Sprintf("Open in browser:\n%s\n\nEnter code: %s\n\nPress Enter to continue...", deviceResp.VerificationURI, color.New(color.Bold).Sprint(deviceResp.UserCode)),
+		)
+		fmt.Print(out)
 
-		fmt.Print("Press Enter to open the browser... ")
 		fmt.Scanln()
 
 		openBrowser(deviceResp.VerificationURI)
@@ -116,4 +126,3 @@ func openBrowser(url string) {
 func init() {
 	rootCmd.AddCommand(loginCmd)
 }
-

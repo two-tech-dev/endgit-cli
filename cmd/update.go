@@ -30,20 +30,21 @@ var updateCmd = &cobra.Command{
 
 		client := api.NewClient()
 
-		// Check what the latest version is
 		latestTag, err := client.GetLatestReleaseTag(repo)
 		if err != nil {
 			s.Stop()
 			log.Fatal("Failed to check for updates", err)
 		}
 
-		// Compare with current version
 		currentVersion := strings.TrimPrefix(Version, "v")
 		latestVersion := strings.TrimPrefix(latestTag, "v")
 
 		if currentVersion == latestVersion {
 			s.Stop()
-			log.Successf("You are already on the latest version (%s)", Version)
+			log.SuccessBox(
+				"Up to Date",
+				fmt.Sprintf("You are already on the latest version (%s)", Version),
+			)
 			return
 		}
 
@@ -71,7 +72,6 @@ var updateCmd = &cobra.Command{
 		log.Infof("Updating %s → %s", Version, latestTag)
 		fmt.Println()
 
-		// Resolve install path
 		installPath, err := resolveInstallPath()
 		if err != nil {
 			log.Fatal("Could not determine install path", err)
@@ -82,12 +82,10 @@ var updateCmd = &cobra.Command{
 			log.Fatal("Failed to create install directory", err)
 		}
 
-		// On Windows the running binary is locked and can't be overwritten.
-		// Rename it out of the way first (Windows allows renaming locked files).
 		oldPath := installPath + ".old"
 		if runtime.GOOS == "windows" {
 			if _, err := os.Stat(installPath); err == nil {
-				os.Remove(oldPath) // clean up any previous .old file
+				os.Remove(oldPath)
 				if err := os.Rename(installPath, oldPath); err != nil {
 					log.Fatal("Failed to move current binary for replacement", err)
 				}
@@ -99,7 +97,6 @@ var updateCmd = &cobra.Command{
 
 		if err := client.DownloadFile(latestURL, installPath, nil); err != nil {
 			s.Stop()
-			// Restore the old binary if download failed
 			if runtime.GOOS == "windows" {
 				if _, statErr := os.Stat(oldPath); statErr == nil {
 					os.Rename(oldPath, installPath)
@@ -108,14 +105,15 @@ var updateCmd = &cobra.Command{
 			log.Fatal("Failed to download update", err)
 		}
 
-		// Clean up the old binary
 		if runtime.GOOS == "windows" {
 			os.Remove(oldPath)
 		}
 
 		s.Stop()
-		log.Success("EndGit updated successfully!")
-		log.Infof("Installed to: %s", installPath)
+		log.SuccessBox(
+			"Update Complete",
+			fmt.Sprintf("Updated %s → %s\nInstalled to: %s", Version, latestTag, installPath),
+		)
 	},
 }
 
@@ -128,7 +126,7 @@ func resolveInstallPath() (string, error) {
 		}
 		return filepath.Join(localAppData, "endgit", "endgit.exe"), nil
 
-	default: // linux, darwin
+	default:
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("could not find home directory: %w", err)

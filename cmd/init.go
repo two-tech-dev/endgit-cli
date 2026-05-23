@@ -95,7 +95,6 @@ var initCmd = &cobra.Command{
 		pluginPath := filepath.Join(dir, "plugin.json")
 		endgitPath := filepath.Join(dir, "endgit.json")
 
-		// Warn if files already exist
 		if _, err := os.Stat(pluginPath); err == nil {
 			log.Warn("plugin.json already exists and will be overwritten")
 		}
@@ -116,8 +115,10 @@ var initCmd = &cobra.Command{
 			log.Fatal("Failed to write endgit.json", err)
 		}
 
-		log.Success("Created plugin.json and endgit.json")
-		log.Info("You can now run 'endgit publish' to push your plugin")
+		log.SuccessBox(
+			"Plugin Initialized",
+			fmt.Sprintf("Created plugin.json and endgit.json\n\nPlugin: %s\nType:   %s\nVersion: %s\n\nRun 'endgit publish' to push your plugin.", name, pluginType, version),
+		)
 	},
 }
 

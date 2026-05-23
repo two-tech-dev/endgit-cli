@@ -35,13 +35,9 @@ func resolveExt(pluginType string) string {
 	}
 }
 
-// buildFilename constructs a download filename. For Python plugins it produces
-// a PEP 427-compliant wheel name (e.g. "name-1.0.0-py3-none-any.whl") so that
-// pip / importlib can load the file without renaming.
 func buildFilename(name, version, pluginType string) string {
 	ext := resolveExt(pluginType)
 	if strings.ToLower(pluginType) == "python" {
-		// Wheel filenames use underscores, not hyphens, in the distribution name.
 		safeName := strings.ReplaceAll(name, "-", "_")
 		return fmt.Sprintf("%s-%s-py3-none-any%s", safeName, version, ext)
 	}
@@ -76,7 +72,6 @@ func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filenam
 	return nil
 }
 
-// parsePluginInput splits "plugin@version" or "plugin@commitHash" into its components.
 func parsePluginInput(input string) (plugin, version, commit string, err error) {
 	parts := strings.SplitN(input, "@", 2)
 	plugin = strings.TrimSpace(parts[0])
@@ -160,7 +155,10 @@ Examples:
 			if err := downloadAndSave(s, client, url, filename); err != nil {
 				log.Fatal("Failed to download", err)
 			}
-			log.Successf("Installed dev build %s #%d", plugin, target.BuildNumber)
+			log.SuccessBox(
+				"Dev Build Installed",
+				fmt.Sprintf("Plugin: %s\nBuild:  #%d\nCommit: %s", plugin, target.BuildNumber, commit[:7]),
+			)
 			return
 		}
 
@@ -181,7 +179,10 @@ Examples:
 			if err := downloadAndSave(s, client, downloadURL, filename); err != nil {
 				log.Fatal("Failed to download", err)
 			}
-			log.Successf("Installed %s@%s", plugin, version)
+			log.SuccessBox(
+				"Plugin Installed",
+				fmt.Sprintf("Plugin:  %s\nVersion: %s", plugin, version),
+			)
 			return
 		}
 
@@ -208,7 +209,10 @@ Examples:
 		if err := downloadAndSave(s, client, downloadURL, filename); err != nil {
 			log.Fatal("Failed to download", err)
 		}
-		log.Successf("Installed %s@%s", plugin, p.LatestVersion)
+		log.SuccessBox(
+			"Plugin Installed",
+			fmt.Sprintf("Plugin:  %s\nVersion: %s", plugin, p.LatestVersion),
+		)
 	},
 }
 

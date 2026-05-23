@@ -8,12 +8,21 @@ import (
 	"strings"
 	"time"
 
+	box "github.com/box-cli-maker/box-cli-maker/v3"
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/two-tech-dev/endgit-cli/internal/api"
 	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
+
+var infoResultBox = box.NewBox().
+		Style(box.Double).
+		Padding(2, 1).
+		TitlePosition(box.Top).
+		ContentAlign(box.Left).
+		Color(box.Cyan).
+		TitleColor(box.BrightCyan)
 
 var infoCmd = &cobra.Command{
 	Use:   "info <plugin>",
@@ -35,10 +44,6 @@ var infoCmd = &cobra.Command{
 			log.Fatal("Failed to fetch plugin", err)
 		}
 
-		bold := color.New(color.Bold)
-		dim := color.New(color.FgHiBlack)
-
-		// Plugin header
 		typeBadge := color.HiGreenString("[PY]")
 		if strings.ToUpper(p.PluginType) != "PYTHON" {
 			typeBadge = color.HiBlueString("[C++]")
@@ -49,57 +54,51 @@ var infoCmd = &cobra.Command{
 			displayName = p.Name
 		}
 
-		fmt.Println()
-		bold.Printf("  %s %s", typeBadge, displayName)
+		var lines []string
+
+		header := fmt.Sprintf("%s  %s", typeBadge, color.New(color.FgHiWhite, color.Bold).Sprint(displayName))
 		if p.LatestVersion != "" {
-			fmt.Printf("  %s", color.MagentaString("v%s", p.LatestVersion))
+			header += fmt.Sprintf("  %s", color.MagentaString("v%s", p.LatestVersion))
 		}
-		fmt.Println()
+		lines = append(lines, header)
+		lines = append(lines, color.HiBlackString(p.Slug))
+		lines = append(lines, "")
 
-		// Slug / Registry name
-		dim.Printf("  %s\n", p.Slug)
-		fmt.Println()
-
-		// Description
 		if p.Description != "" {
-			fmt.Printf("  %s\n\n", p.Description)
+			lines = append(lines, p.Description)
+			lines = append(lines, "")
 		}
 
-		// Metadata table
-		label := color.New(color.FgCyan)
-
-		printField := func(key, value string) {
+		addField := func(key, value string) {
 			if value != "" {
-				label.Printf("  %-14s", key)
-				fmt.Println(value)
+				lines = append(lines, fmt.Sprintf("%-14s %s", color.CyanString(key), value))
 			}
 		}
 
-		printField("Author", formatAuthor(p.Author))
-		printField("License", p.License)
-		printField("Type", p.PluginType)
-		printField("Status", p.Status)
-		printField("Downloads", fmt.Sprintf("%d", p.Downloads))
-		printField("Stars", fmt.Sprintf("%d", p.Stars))
-		printField("Trust Score", formatTrustScore(p.TrustScore))
+		addField("Author", formatAuthor(p.Author))
+		addField("License", p.License)
+		addField("Type", p.PluginType)
+		addField("Status", p.Status)
+		addField("Downloads", fmt.Sprintf("%d", p.Downloads))
+		addField("Stars", fmt.Sprintf("%d", p.Stars))
 
 		if p.RepoURL != "" {
-			printField("Repository", p.RepoURL)
+			addField("Repository", p.RepoURL)
 		}
 
 		if len(p.Tags) > 0 {
-			printField("Tags", strings.Join(p.Tags, ", "))
+			addField("Tags", strings.Join(p.Tags, ", "))
 		}
 		if len(p.Keywords) > 0 {
-			printField("Keywords", strings.Join(p.Keywords, ", "))
+			addField("Keywords", strings.Join(p.Keywords, ", "))
 		}
 
-		fmt.Println()
+		lines = append(lines, "")
+		lines = append(lines, fmt.Sprintf("Install: %s", color.HiWhiteString("endgit install %s", p.Name)))
 
-		// Install hint
-		fmt.Printf("  Install: %s\n\n",
-			color.HiWhiteString("endgit install %s", p.Name),
-		)
+		content := strings.Join(lines, "\n")
+		out := infoResultBox.MustRender(displayName, content)
+		fmt.Println(out)
 	},
 }
 
@@ -111,17 +110,6 @@ func formatAuthor(a api.Author) string {
 		return a.Username
 	}
 	return "unknown"
-}
-
-func formatTrustScore(score int) string {
-	switch {
-	case score >= 80:
-		return color.GreenString("%d/100 ★", score)
-	case score >= 50:
-		return color.YellowString("%d/100", score)
-	default:
-		return color.RedString("%d/100", score)
-	}
 }
 
 func init() {

@@ -33,7 +33,7 @@ var logoutCmd = &cobra.Command{
 			log.Fatal("Failed to logout", err)
 		}
 
-		log.Success("Successfully logged out")
+		log.SuccessBox("Logged Out", "Successfully logged out of EndGit")
 	},
 }
 
