@@ -1,8 +1,11 @@
 # EndGit CLI
+[![Release](https://github.com/two-tech-dev/endgit-cli/actions/workflows/release.yml/badge.svg)](https://github.com/two-tech-dev/endgit-cli/actions/workflows/release.yml)   
+
 **Command-line tool for the Endstone plugin ecosystem**   
 EndGit CLI allows developers to publish, search, and install Endstone plugins directly from the terminal.
 
-[![Release](https://github.com/two-tech-dev/endgit-cli/actions/workflows/release.yml/badge.svg)](https://github.com/two-tech-dev/endgit-cli/actions/workflows/release.yml)   
+<img width="891" height="352" alt="image" src="https://github.com/user-attachments/assets/cd689109-a48c-4cff-a66e-1ec69adbd7f1" />
+
 
 ## Installation
 
