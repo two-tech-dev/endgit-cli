@@ -6,7 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"os/exec"
 	"runtime"
 	"strings"
 	"time"
@@ -20,7 +20,7 @@ import (
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update EndGit to the latest version",
-	Long:  "Checks for the latest release of EndGit and automatically downloads and installs it.",
+	Long:  "Checks for the latest release of EndGit and runs the official installer to update.",
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := "two-tech-dev/endgit-cli"
 
@@ -48,91 +48,44 @@ var updateCmd = &cobra.Command{
 			return
 		}
 
-		if Version == "dev" {
-			s.Stop()
-			log.Warn("Running a development build — skipping auto-update")
-			log.Infof("Latest release: %s", latestTag)
-			log.Info("Download from: https://github.com/two-tech-dev/endgit-cli/releases/latest")
-			return
-		}
-
-		ext := ""
-		if runtime.GOOS == "windows" {
-			ext = ".exe"
-		}
-		assetName := fmt.Sprintf("endgit-%s-%s%s", runtime.GOOS, runtime.GOARCH, ext)
-
-		latestURL, err := client.GetLatestReleaseAssetURL(repo, assetName)
-		if err != nil {
-			s.Stop()
-			log.Fatal("Failed to find update binary for your platform", err)
-		}
-
 		s.Stop()
 		log.Infof("Updating %s → %s", Version, latestTag)
 		fmt.Println()
 
-		installPath, err := resolveInstallPath()
-		if err != nil {
-			log.Fatal("Could not determine install path", err)
-		}
-
-		installDir := filepath.Dir(installPath)
-		if err := os.MkdirAll(installDir, 0o755); err != nil {
-			log.Fatal("Failed to create install directory", err)
-		}
-
-		oldPath := installPath + ".old"
-		if runtime.GOOS == "windows" {
-			if _, err := os.Stat(installPath); err == nil {
-				os.Remove(oldPath)
-				if err := os.Rename(installPath, oldPath); err != nil {
-					log.Fatal("Failed to move current binary for replacement", err)
-				}
-			}
-		}
-
-		s.Suffix = " Downloading update..."
+		s.Suffix = " Running installer..."
 		s.Start()
 
-		if err := client.DownloadFile(latestURL, installPath, nil); err != nil {
-			s.Stop()
-			if runtime.GOOS == "windows" {
-				if _, statErr := os.Stat(oldPath); statErr == nil {
-					os.Rename(oldPath, installPath)
-				}
-			}
-			log.Fatal("Failed to download update", err)
-		}
-
 		if runtime.GOOS == "windows" {
-			os.Remove(oldPath)
+			err = runWindowsInstaller()
+		} else {
+			err = runUnixInstaller()
 		}
 
 		s.Stop()
+
+		if err != nil {
+			log.Fatal("Update failed", err)
+		}
+
 		log.SuccessBox(
 			"Update Complete",
-			fmt.Sprintf("Updated %s → %s\nInstalled to: %s", Version, latestTag, installPath),
+			fmt.Sprintf("EndGit has been updated to %s", latestTag),
 		)
 	},
 }
 
-func resolveInstallPath() (string, error) {
-	switch runtime.GOOS {
-	case "windows":
-		localAppData := os.Getenv("LOCALAPPDATA")
-		if localAppData == "" {
-			return "", fmt.Errorf("LOCALAPPDATA environment variable not set")
-		}
-		return filepath.Join(localAppData, "endgit", "endgit.exe"), nil
+func runUnixInstaller() error {
+	c := exec.Command("bash", "-c", "curl -sSL https://endgit.dev/installer.sh | bash")
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c.Run()
+}
 
-	default:
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("could not find home directory: %w", err)
-		}
-		return filepath.Join(home, ".local", "bin", "endgit"), nil
-	}
+func runWindowsInstaller() error {
+	c := exec.Command("powershell", "-NoProfile", "-Command", "irm https://endgit.dev/installer.ps1 | iex")
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c.Run()
 }
 
 func init() {

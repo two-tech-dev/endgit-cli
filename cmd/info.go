@@ -65,7 +65,7 @@ var infoCmd = &cobra.Command{
 		lines = append(lines, "")
 
 		if p.Description != "" {
-			lines = append(lines, p.Description)
+			lines = append(lines, wrapText(p.Description, 40))
 			lines = append(lines, "")
 		}
 
@@ -100,6 +100,26 @@ var infoCmd = &cobra.Command{
 		out := infoResultBox.MustRender(displayName, content)
 		fmt.Println(out)
 	},
+}
+
+func wrapText(s string, width int) string {
+	words := strings.Fields(s)
+	if len(words) == 0 {
+		return s
+	}
+
+	var lines []string
+	line := words[0]
+	for _, w := range words[1:] {
+		if len(line)+1+len(w) > width {
+			lines = append(lines, line)
+			line = w
+		} else {
+			line += " " + w
+		}
+	}
+	lines = append(lines, line)
+	return strings.Join(lines, "\n")
 }
 
 func formatAuthor(a api.Author) string {
