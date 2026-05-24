@@ -34,7 +34,7 @@ var versionBox = box.NewBox().
 
 // Version is set at build time via -ldflags.
 // Falls back to "dev" for local builds.
-var Version = "0.1.8"
+var Version = "0.1.9"
 
 var rootCmd = &cobra.Command{
 	Use:     "endgit",
