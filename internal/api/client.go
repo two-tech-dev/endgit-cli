@@ -72,7 +72,7 @@ func NewClient() *Client {
 	return &Client{
 		BaseURL: base + "/api/v1",
 		HTTP: &http.Client{
-			Timeout: 10 * time.Minute,
+			Timeout: 30 * time.Second,
 			Transport: &authTransport{
 				rt:    http.DefaultTransport,
 				token: cfg.APIToken,
@@ -496,4 +496,29 @@ func (c *Client) PollDeviceToken(deviceCode string) (*DeviceTokenResponse, error
 	}
 
 	return nil, fmt.Errorf("unexpected response: HTTP %s", resp.Status)
+}
+
+// GetMe retrieves the currently authenticated user's info.
+func (c *Client) GetMe() (*User, error) {
+	u := fmt.Sprintf("%s/auth/me", c.BaseURL)
+
+	resp, err := c.doGetWithRetry(u)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, apiError(resp)
+	}
+
+	var res struct {
+		Success bool `json:"success"`
+		Data    User `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return nil, fmt.Errorf("failed to decode user response: %w", err)
+	}
+
+	return &res.Data, nil
 }

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
@@ -62,16 +63,18 @@ var initCmd = &cobra.Command{
 		description := read("Description", "")
 		apiVersion := read("Required Endstone API version", "^0.5.0")
 
-		fmt.Println("Plugin Type:")
-		fmt.Println("1) Python")
-		fmt.Println("2) C++")
-		fmt.Print("Select [1-2]: ")
-
-		choice, _ := reader.ReadString('\n')
-		choice = strings.TrimSpace(choice)
+		var typeResult string
+		typePrompt := &survey.Select{
+			Message: "Plugin Type:",
+			Options: []string{"Python", "C++"},
+		}
+		if err := survey.AskOne(typePrompt, &typeResult); err != nil {
+			log.Warn("Initialization cancelled")
+			return
+		}
 
 		pluginType := "PYTHON"
-		if choice == "2" {
+		if typeResult == "C++" {
 			pluginType = "CPP"
 		}
 

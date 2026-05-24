@@ -33,6 +33,8 @@ type Plugin struct {
 	PluginType      string   `json:"pluginType"`
 	Downloads       int      `json:"downloads"`
 	Stars           int      `json:"stars"`
+	CommentCount    int      `json:"commentCount"`
+	HeatScore       int      `json:"heatScore"`
 	Status          string   `json:"status"`
 	TrustScore      int      `json:"trustScore"`
 	LatestVersion   string   `json:"latestVersion"`
@@ -47,6 +49,12 @@ type Author struct {
 	Username    string `json:"username"`
 	DisplayName string `json:"displayName"`
 	AvatarURL   string `json:"avatarUrl"`
+}
+
+// User represents the authenticated user.
+type User struct {
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
 }
 
 // Pagination contains pagination information.

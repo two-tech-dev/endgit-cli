@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 
@@ -96,29 +97,51 @@ func parsePluginInput(input string) (plugin, version, commit string, err error) 
 }
 
 var installCmd = &cobra.Command{
-	Use:   "install <plugin[@version|@commit]>",
+	Use:   "install [plugin[@version|@commit]]",
 	Short: "Download and install a plugin to the current directory",
 	Long: `Download and install a plugin from the EndGit registry.
 
 Examples:
+  endgit install                        Interactive search and install
   endgit install my-plugin              Install the latest stable version
   endgit install my-plugin@1.2.0        Install a specific version
   endgit install my-plugin@abc1234      Install a specific dev build by commit`,
-	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		plugin, version, commit, err := parsePluginInput(args[0])
-		if err != nil {
-			log.Fatal("Invalid input", err)
+		var plugin, version, commit string
+		var err error
+
+		if len(args) == 0 {
+			plugin = interactiveInstall("")
+			if plugin == "" {
+				return
+			}
+		} else {
+			input := args[0]
+			if strings.Contains(input, "@") {
+				plugin, version, commit, err = parsePluginInput(input)
+				if err != nil {
+					log.Fatal("Invalid input", err)
+				}
+			} else {
+				plugin = interactiveInstall(input)
+				if plugin == "" {
+					return
+				}
+			}
 		}
 
 		client := api.NewClient()
 
 		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		s.Suffix = fmt.Sprintf(" Fetching %s...", plugin)
+		s.Start()
+
 		p, err := client.GetPlugin(plugin)
 		if err != nil {
 			s.Stop()
 			log.Fatal("Failed to fetch plugin", err)
 		}
+		s.Stop()
 
 		// DEV BUILD (COMMIT)
 		if commit != "" {
@@ -218,4 +241,58 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(installCmd)
+}
+
+func interactiveInstall(query string) string {
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	if query != "" {
+		s.Suffix = fmt.Sprintf(" Searching \"%s\"...", query)
+	} else {
+		s.Suffix = " Fetching available plugins..."
+	}
+	s.Start()
+
+	client := api.NewClient()
+	response, err := client.GetPlugins(query)
+	s.Stop()
+
+	if err != nil {
+		log.Fatal("Failed to fetch plugins", err)
+	}
+
+	plugins := response.Data.Plugins
+	if len(plugins) == 0 {
+		if query != "" {
+			log.Warnf("No plugins found matching \"%s\"", query)
+		} else {
+			log.Warn("No plugins available")
+		}
+		return ""
+	}
+
+	items := make([]string, len(plugins))
+	for i, p := range plugins {
+		ver := p.LatestVersion
+		if ver == "" {
+			ver = "?.?.?"
+		}
+		items[i] = fmt.Sprintf("%s (v%s) - %d downloads", p.Name, ver, p.Downloads)
+	}
+
+	var selected string
+	prompt := &survey.Select{
+		Message:  "Select a plugin to install:",
+		Options:  items,
+		PageSize: 10,
+	}
+	if err := survey.AskOne(prompt, &selected); err != nil {
+		return ""
+	}
+
+	for i, item := range items {
+		if item == selected {
+			return plugins[i].Name
+		}
+	}
+	return ""
 }

@@ -80,7 +80,8 @@ var infoCmd = &cobra.Command{
 		addField("Type", p.PluginType)
 		addField("Status", p.Status)
 		addField("Downloads", fmt.Sprintf("%d", p.Downloads))
-		addField("Stars", fmt.Sprintf("%d", p.Stars))
+		addField("Heat", fmt.Sprintf("%d", p.HeatScore))
+		addField("Comments", fmt.Sprintf("%d", p.CommentCount))
 
 		if p.RepoURL != "" {
 			addField("Repository", p.RepoURL)
