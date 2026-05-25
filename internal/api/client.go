@@ -387,7 +387,7 @@ func resolveFilename(resp *http.Response, downloadURL string) string {
 // GetLatestReleaseAssetURL retrieves the download URL for a specific asset from the latest release.
 func (c *Client) GetLatestReleaseAssetURL(repo string, assetName string) (string, error) {
 	ghURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
-	resp, err := c.HTTP.Get(ghURL)
+	resp, err := http.Get(ghURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch GitHub release: %w", err)
 	}
@@ -420,7 +420,7 @@ func (c *Client) GetLatestReleaseAssetURL(repo string, assetName string) (string
 // GetLatestReleaseTag returns the tag_name of the latest GitHub release.
 func (c *Client) GetLatestReleaseTag(repo string) (string, error) {
 	ghURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
-	resp, err := c.HTTP.Get(ghURL)
+	resp, err := http.Get(ghURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch GitHub release: %w", err)
 	}
