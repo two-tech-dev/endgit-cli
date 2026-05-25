@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -308,26 +310,31 @@ func (pw *progressWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-// DownloadFile downloads a file from the given URL and saves it to destPath.
+// DownloadFile downloads a file from the given URL and saves it into destDir.
+// The filename is resolved from the Content-Disposition header (if present),
+// falling back to the URL path basename. Returns the filename that was saved.
 // The download is written to a temporary file first and renamed on success,
 // so a failed download never leaves a partial file behind.
-func (c *Client) DownloadFile(downloadURL string, destPath string, onProgress func(downloaded int64, total int64)) error {
+func (c *Client) DownloadFile(downloadURL string, destDir string, onProgress func(downloaded int64, total int64)) (string, error) {
 	resp, err := c.HTTP.Get(downloadURL)
 	if err != nil {
-		return fmt.Errorf("failed to download file: %w", err)
+		return "", fmt.Errorf("failed to download file: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download error: HTTP %s", resp.Status)
+		return "", fmt.Errorf("download error: HTTP %s", resp.Status)
 	}
+
+	filename := resolveFilename(resp, downloadURL)
+	destPath := path.Join(destDir, filename)
 
 	// Write to a temp file to avoid partial/corrupt files on failure
 	tmpPath := destPath + ".tmp"
 
 	out, err := os.Create(tmpPath)
 	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
+		return "", fmt.Errorf("failed to create file: %w", err)
 	}
 
 	pw := &progressWriter{
@@ -344,16 +351,37 @@ func (c *Client) DownloadFile(downloadURL string, destPath string, onProgress fu
 
 	if copyErr != nil {
 		os.Remove(tmpPath)
-		return fmt.Errorf("failed to write file: %w", copyErr)
+		return "", fmt.Errorf("failed to write file: %w", copyErr)
 	}
 
 	// Atomic rename (move temp → final path)
 	if err := os.Rename(tmpPath, destPath); err != nil {
 		os.Remove(tmpPath)
-		return fmt.Errorf("failed to finalize download: %w", err)
+		return "", fmt.Errorf("failed to finalize download: %w", err)
 	}
 
-	return nil
+	return filename, nil
+}
+
+// resolveFilename extracts the filename from a Content-Disposition header,
+// falling back to the URL path basename.
+func resolveFilename(resp *http.Response, downloadURL string) string {
+	if cd := resp.Header.Get("Content-Disposition"); cd != "" {
+		_, params, err := mime.ParseMediaType(cd)
+		if err == nil {
+			if name, ok := params["filename"]; ok && name != "" {
+				return name
+			}
+		}
+	}
+
+	if u, err := url.Parse(downloadURL); err == nil {
+		if base := path.Base(u.Path); base != "/" && base != "." {
+			return base
+		}
+	}
+
+	return "download"
 }
 
 // GetLatestReleaseAssetURL retrieves the download URL for a specific asset from the latest release.

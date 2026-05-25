@@ -147,9 +147,8 @@ Examples:
 				runtime.GOOS,
 			)
 
-			newFilename := buildFilename(u.local.name, u.remote.LatestVersion, u.remote.PluginType)
-
-			if err := downloadAndSave(s, client, downloadURL, newFilename); err != nil {
+			newFilename, err := downloadAndSave(s, client, downloadURL)
+			if err != nil {
 				log.Warnf("Failed to upgrade %s: %v", u.local.name, err)
 				continue
 			}
@@ -180,11 +179,12 @@ func parsePluginFilename(base, ext string) struct {
 	if ext == ".whl" {
 		parts := strings.SplitN(base, "-", 3)
 		if len(parts) >= 2 {
+			name := strings.TrimPrefix(parts[0], "endstone_")
 			return struct {
 				name    string
 				version string
 				file    string
-			}{parts[0], parts[1], filename}
+			}{name, parts[1], filename}
 		}
 	}
 

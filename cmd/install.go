@@ -20,38 +20,12 @@ import (
 	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
 
-func resolveExt(pluginType string) string {
-	switch strings.ToLower(pluginType) {
-	case "python":
-		return ".whl"
-	default:
-		switch runtime.GOOS {
-		case "windows":
-			return ".dll"
-		case "darwin":
-			return ".dylib"
-		default:
-			return ".so"
-		}
-	}
-}
-
-func buildFilename(name, version, pluginType string) string {
-	ext := resolveExt(pluginType)
-	if strings.ToLower(pluginType) == "python" {
-		safeName := strings.ReplaceAll(name, "-", "_")
-		return fmt.Sprintf("%s-%s-py3-none-any%s", safeName, version, ext)
-	}
-	return fmt.Sprintf("%s-%s%s", name, version, ext)
-}
-
-func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filename string) error {
+func downloadAndSave(s *spinner.Spinner, client *api.Client, url string) (string, error) {
 	if err := os.MkdirAll("plugins", 0o755); err != nil {
 		s.Stop()
-		return fmt.Errorf("failed to create plugins directory: %w", err)
+		return "", fmt.Errorf("failed to create plugins directory: %w", err)
 	}
 
-	file := filepath.Join("plugins", filename)
 	baseSuffix := s.Suffix
 
 	onProgress := func(downloaded, total int64) {
@@ -63,14 +37,15 @@ func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, filenam
 		}
 	}
 
-	if err := client.DownloadFile(url, file, onProgress); err != nil {
+	filename, err := client.DownloadFile(url, "plugins", onProgress)
+	if err != nil {
 		s.Stop()
-		return fmt.Errorf("download failed: %w", err)
+		return "", fmt.Errorf("download failed: %w", err)
 	}
 
 	s.Stop()
-	log.Infof("Saved to: %s", file)
-	return nil
+	log.Infof("Saved to: %s", filepath.Join("plugins", filename))
+	return filename, nil
 }
 
 func parsePluginInput(input string) (plugin, version, commit string, err error) {
@@ -172,10 +147,8 @@ Examples:
 			s.Suffix = fmt.Sprintf(" Downloading build #%d...", target.BuildNumber)
 
 			url := target.ResolveArtifactURL()
-			devVersion := fmt.Sprintf("build%d.%s", target.BuildNumber, commit[:7])
-			filename := buildFilename(plugin, devVersion, p.PluginType)
 
-			if err := downloadAndSave(s, client, url, filename); err != nil {
+			if _, err := downloadAndSave(s, client, url); err != nil {
 				log.Fatal("Failed to download", err)
 			}
 			log.SuccessBox(
@@ -198,8 +171,7 @@ Examples:
 				runtime.GOOS,
 			)
 
-			filename := buildFilename(plugin, version, p.PluginType)
-			if err := downloadAndSave(s, client, downloadURL, filename); err != nil {
+			if _, err := downloadAndSave(s, client, downloadURL); err != nil {
 				log.Fatal("Failed to download", err)
 			}
 			log.SuccessBox(
@@ -228,8 +200,7 @@ Examples:
 			runtime.GOOS,
 		)
 
-		filename := buildFilename(plugin, p.LatestVersion, p.PluginType)
-		if err := downloadAndSave(s, client, downloadURL, filename); err != nil {
+		if _, err := downloadAndSave(s, client, downloadURL); err != nil {
 			log.Fatal("Failed to download", err)
 		}
 		log.SuccessBox(
