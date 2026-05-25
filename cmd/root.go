@@ -15,26 +15,26 @@ import (
 var endgit = "EndGit"
 
 var bannerBox = box.NewBox().
-		Style(box.Bold).
-		Padding(2, 1).
-		TitlePosition(box.Top).
-		ContentAlign(box.Center).
-		Color(box.Cyan).
-		TitleColor(box.BrightCyan).
-		ContentColor(box.BrightWhite)
+	Style(box.Bold).
+	Padding(2, 1).
+	TitlePosition(box.Top).
+	ContentAlign(box.Center).
+	Color(box.Cyan).
+	TitleColor(box.BrightCyan).
+	ContentColor(box.BrightWhite)
 
 var versionBox = box.NewBox().
-		Style(box.Single).
-		Padding(2, 0).
-		TitlePosition(box.Inside).
-		ContentAlign(box.Left).
-		Color(box.Cyan).
-		TitleColor(box.BrightCyan).
-		ContentColor(box.BrightWhite)
+	Style(box.Single).
+	Padding(2, 0).
+	TitlePosition(box.Inside).
+	ContentAlign(box.Left).
+	Color(box.Cyan).
+	TitleColor(box.BrightCyan).
+	ContentColor(box.BrightWhite)
 
 // Version is set at build time via -ldflags.
 // Falls back to "dev" for local builds.
-var Version = "0.1.9"
+var Version = "0.2.0"
 
 var rootCmd = &cobra.Command{
 	Use:     "endgit",
