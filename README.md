@@ -23,28 +23,16 @@ curl -sSL https://endgit.dev/installer.sh | bash
 ## Usage
 
 ```bash
-# Login with your EndGit account
 endgit login
-
-# Search plugins
 endgit search <query>
-
-# View plugin details
 endgit info <plugin>
-
-# Install a plugin (latest version)
-endgit install <plugin>
-
-# Install a specific version
-endgit install <plugin>@1.2.0
-
-# Install a dev build by commit
-endgit install <plugin>@abc1234
-
-# Initialize a new plugin project
+endgit install <plugin[@version|@commit]>
+endgit upgrade [plugin]
+endgit remove <plugin>
+endgit list
 endgit init
-
-# Update EndGit to the latest version
+endgit publish
+endgit whoami
 endgit update
 ```
 
@@ -57,6 +45,10 @@ endgit update
 | `endgit search <query>` | Search the plugin marketplace |
 | `endgit info <plugin>` | Show detailed plugin information |
 | `endgit install <plugin[@version]>` | Install a plugin to your server |
+| `endgit upgrade [plugin]` | Upgrade installed plugins to the latest version |
+| `endgit list` | List installed plugins |
+| `endgit remove <plugin>` | Remove an installed plugin |
+| `endgit whoami` | Show the currently authenticated user |
 | `endgit init` | Initialize a new plugin project |
 | `endgit publish` | Package and publish your plugin |
 | `endgit update` | Update EndGit CLI to the latest version |
