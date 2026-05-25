@@ -147,7 +147,7 @@ Examples:
 				runtime.GOOS,
 			)
 
-			newFilename, err := downloadAndSave(s, client, downloadURL)
+			newFilename, err := downloadAndSave(s, client, downloadURL, "plugins")
 			if err != nil {
 				log.Warnf("Failed to upgrade %s: %v", u.local.name, err)
 				continue

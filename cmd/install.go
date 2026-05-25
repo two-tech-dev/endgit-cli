@@ -20,8 +20,8 @@ import (
 	"github.com/two-tech-dev/endgit-cli/internal/log"
 )
 
-func downloadAndSave(s *spinner.Spinner, client *api.Client, url string) (string, error) {
-	if err := os.MkdirAll("plugins", 0o755); err != nil {
+func downloadAndSave(s *spinner.Spinner, client *api.Client, url string, destDir string) (string, error) {
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		s.Stop()
 		return "", fmt.Errorf("failed to create plugins directory: %w", err)
 	}
@@ -37,15 +37,41 @@ func downloadAndSave(s *spinner.Spinner, client *api.Client, url string) (string
 		}
 	}
 
-	filename, err := client.DownloadFile(url, "plugins", onProgress)
+	filename, err := client.DownloadFile(url, destDir, onProgress)
 	if err != nil {
 		s.Stop()
 		return "", fmt.Errorf("download failed: %w", err)
 	}
 
 	s.Stop()
-	log.Infof("Saved to: %s", filepath.Join("plugins", filename))
+	log.Infof("Saved to: %s", filepath.Join(destDir, filename))
 	return filename, nil
+}
+
+func resolveInstallDir() string {
+	cwd, err := os.Getwd()
+	if err == nil && strings.EqualFold(filepath.Base(cwd), "plugins") {
+		return "."
+	}
+
+	options := []string{
+		"plugins/  (create if needed)",
+		".         (current directory)",
+	}
+
+	var selected string
+	prompt := &survey.Select{
+		Message: "Where should the plugin be saved?",
+		Options: options,
+	}
+	if err := survey.AskOne(prompt, &selected); err != nil {
+		return ""
+	}
+
+	if strings.HasPrefix(selected, "plugins/") {
+		return "plugins"
+	}
+	return "."
 }
 
 func parsePluginInput(input string) (plugin, version, commit string, err error) {
@@ -118,6 +144,11 @@ Examples:
 		}
 		s.Stop()
 
+		destDir := resolveInstallDir()
+		if destDir == "" {
+			return
+		}
+
 		// DEV BUILD (COMMIT)
 		if commit != "" {
 			s.Suffix = fmt.Sprintf(" Searching build %.7s...", commit)
@@ -148,7 +179,7 @@ Examples:
 
 			url := target.ResolveArtifactURL()
 
-			if _, err := downloadAndSave(s, client, url); err != nil {
+			if _, err := downloadAndSave(s, client, url, destDir); err != nil {
 				log.Fatal("Failed to download", err)
 			}
 			log.Successf("Installed %s dev build #%d (%s)", plugin, target.BuildNumber, commit[:7])
@@ -168,7 +199,7 @@ Examples:
 				runtime.GOOS,
 			)
 
-			if _, err := downloadAndSave(s, client, downloadURL); err != nil {
+			if _, err := downloadAndSave(s, client, downloadURL, destDir); err != nil {
 				log.Fatal("Failed to download", err)
 			}
 			log.Successf("Installed %s@%s", plugin, version)
@@ -194,7 +225,7 @@ Examples:
 			runtime.GOOS,
 		)
 
-		if _, err := downloadAndSave(s, client, downloadURL); err != nil {
+		if _, err := downloadAndSave(s, client, downloadURL, destDir); err != nil {
 			log.Fatal("Failed to download", err)
 		}
 		log.Successf("Installed %s@%s", plugin, p.LatestVersion)
