@@ -164,7 +164,7 @@ Examples:
 		}
 
 		if upgraded > 0 {
-			log.SuccessBox("Upgrade Complete", fmt.Sprintf("%d plugin(s) upgraded", upgraded))
+			log.Successf("Upgraded %d plugin(s)", upgraded)
 		}
 	},
 }

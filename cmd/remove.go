@@ -4,7 +4,6 @@ Copyright © 2026 Two Tech Studio
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -107,7 +106,7 @@ Examples:
 			log.Infof("Removed: %s", t.file)
 		}
 
-		log.SuccessBox("Plugin Removed", fmt.Sprintf("Removed %d file(s)", len(targets)))
+		log.Successf("Removed %d file(s)", len(targets))
 	},
 }
 

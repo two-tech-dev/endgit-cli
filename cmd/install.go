@@ -151,10 +151,7 @@ Examples:
 			if _, err := downloadAndSave(s, client, url); err != nil {
 				log.Fatal("Failed to download", err)
 			}
-			log.SuccessBox(
-				"Dev Build Installed",
-				fmt.Sprintf("Plugin: %s\nBuild:  #%d\nCommit: %s", plugin, target.BuildNumber, commit[:7]),
-			)
+			log.Successf("Installed %s dev build #%d (%s)", plugin, target.BuildNumber, commit[:7])
 			return
 		}
 
@@ -174,10 +171,7 @@ Examples:
 			if _, err := downloadAndSave(s, client, downloadURL); err != nil {
 				log.Fatal("Failed to download", err)
 			}
-			log.SuccessBox(
-				"Plugin Installed",
-				fmt.Sprintf("Plugin:  %s\nVersion: %s", plugin, version),
-			)
+			log.Successf("Installed %s@%s", plugin, version)
 			return
 		}
 
@@ -203,10 +197,7 @@ Examples:
 		if _, err := downloadAndSave(s, client, downloadURL); err != nil {
 			log.Fatal("Failed to download", err)
 		}
-		log.SuccessBox(
-			"Plugin Installed",
-			fmt.Sprintf("Plugin:  %s\nVersion: %s", plugin, p.LatestVersion),
-		)
+		log.Successf("Installed %s@%s", plugin, p.LatestVersion)
 	},
 }
 
