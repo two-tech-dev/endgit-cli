@@ -41,10 +41,7 @@ var updateCmd = &cobra.Command{
 
 		if currentVersion == latestVersion {
 			s.Stop()
-			log.SuccessBox(
-				"Up to Date",
-				fmt.Sprintf("You are already on the latest version (%s)", Version),
-			)
+			log.Successf("Already on the latest version (%s)", Version)
 			return
 		}
 
@@ -67,10 +64,7 @@ var updateCmd = &cobra.Command{
 			log.Fatal("Update failed", err)
 		}
 
-		log.SuccessBox(
-			"Update Complete",
-			fmt.Sprintf("EndGit has been updated to %s", latestTag),
-		)
+		log.Successf("Updated to %s", latestTag)
 	},
 }
 
