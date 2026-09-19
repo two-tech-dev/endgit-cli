@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
-	github.com/box-cli-maker/box-cli-maker/v3 v3.0.0
+	github.com/box-cli-maker/box-cli-maker/v3 v3.1.0
 	github.com/briandowns/spinner v1.23.2
 	github.com/fatih/color v1.19.0
 	github.com/spf13/cobra v1.10.2
@@ -20,7 +20,6 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.5.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
-	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
